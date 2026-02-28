@@ -111,6 +111,15 @@ describe('context parser', () => {
     expect(() => getContext()).toThrow('Unexpected event: push')
   })
 
+  it('throws when issue number is missing', () => {
+    mockContext.eventName = 'issues'
+    mockContext.payload = { issue: { title: 'No number' } }
+
+    expect(() => getContext()).toThrow(
+      'Context missing issue or pull request number'
+    )
+  })
+
   it('creates issue api context mapping', () => {
     mockContext.payload = {
       issue: {

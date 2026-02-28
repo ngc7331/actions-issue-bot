@@ -1,66 +1,6 @@
+import { createContext } from '../__fixtures__/github.js'
 import { evaluateConditions } from '../src/condition/index.js'
 import type { ConditionGroup } from '../src/condition/types.js'
-import type { Context } from '../src/context/index.js'
-
-function createContext(options?: {
-  event?: Context['event']
-  issue?: Partial<
-    Pick<
-      Context,
-      | 'issue_number'
-      | 'title'
-      | 'body'
-      | 'issue_author'
-      | 'author_association'
-      | 'state'
-    >
-  >
-  comment?: {
-    body?: string
-    author?: string
-    author_association?: string
-  } | null
-}): Context {
-  const event =
-    options?.event ??
-    (options?.comment && options.comment !== null ? 'issue_comment' : 'issues')
-
-  const issue_number = options?.issue?.issue_number ?? 101
-  const title = options?.issue?.title ?? 'Bug: failure occurs'
-  const issueBody = options?.issue?.body ?? 'This issue fails with an error'
-  const issue_author = options?.issue?.issue_author ?? 'alice'
-  const issueAuthorAssociation = options?.issue?.author_association ?? 'MEMBER'
-  const issueState = options?.issue?.state ?? 'open'
-
-  const comment =
-    options?.comment === null || event !== 'issue_comment'
-      ? undefined
-      : {
-          body: 'Encountered a bug in production',
-          author: 'bob',
-          author_association: 'NONE',
-          ...options?.comment
-        }
-
-  const body = event === 'issue_comment' ? (comment?.body ?? '') : issueBody
-  const author_association =
-    event === 'issue_comment'
-      ? (comment?.author_association ?? '')
-      : issueAuthorAssociation
-
-  return {
-    owner: 'octo',
-    repo: 'hello',
-    event,
-    issue_number,
-    title,
-    body,
-    state: issueState,
-    issue_author,
-    comment_author: comment?.author,
-    author_association
-  }
-}
 
 describe('condition evaluation', () => {
   it('matches regex against issue body or comment body', () => {

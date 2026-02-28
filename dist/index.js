@@ -63986,7 +63986,10 @@ function normalizeConfig(input) {
             action: rule.action
         };
     }
-    return { rules };
+    return {
+        rules,
+        global: raw.global
+    };
 }
 
 function previewString(text, max = 80) {
@@ -64001,7 +64004,7 @@ function normalizeStringList(input, unique = false) {
         : list.filter(Boolean);
 }
 
-function evaluate$4(condition, ctx) {
+function evaluate$5(condition, ctx) {
     const pattern = new RegExp(condition.regex);
     const body = ctx.body;
     const result = pattern.test(body);
@@ -64009,11 +64012,19 @@ function evaluate$4(condition, ctx) {
     return result;
 }
 
-function evaluate$3(condition, ctx) {
+function evaluate$4(condition, ctx) {
     const pattern = new RegExp(condition.regex_title);
     const title = ctx.title;
     const matched = pattern.test(title);
     debug(`[condition:regex_title] pattern="${condition.regex_title}" title="${previewString(title)}" matched=${matched}`);
+    return matched;
+}
+
+function evaluate$3(condition, ctx) {
+    const actual = ctx.event;
+    const expected = condition.event_type;
+    const matched = actual === expected;
+    debug(`[condition:event_type] expected=${expected} actual=${actual} matched=${matched}`);
     return matched;
 }
 
@@ -64050,9 +64061,12 @@ function evaluateConditions(conditions, ctx) {
 }
 function evaluateCondition(condition, ctx) {
     if ('regex' in condition) {
-        return evaluate$4(condition, ctx);
+        return evaluate$5(condition, ctx);
     }
     if ('regex_title' in condition) {
+        return evaluate$4(condition, ctx);
+    }
+    if ('event_type' in condition) {
         return evaluate$3(condition, ctx);
     }
     if ('member' in condition) {
@@ -64193,6 +64207,12 @@ async function run() {
         const config = await parseConfig(configPath);
         const context = getContext();
         info(`#${context.issue_number} event: ${context.event}`);
+        const globalMatched = evaluateConditions(config.global, context);
+        info(`Global conditions matched=${globalMatched}`);
+        if (!globalMatched) {
+            info('Global conditions not satisfied; skipping all rules.');
+            return;
+        }
         for (const [ruleName, rule] of Object.entries(config.rules ?? {})) {
             info(`Evaluating rule: ${ruleName}`);
             const matched = evaluateConditions(rule.condition, context);

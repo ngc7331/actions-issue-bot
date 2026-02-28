@@ -139,6 +139,16 @@ Example:
 - event_type: issues
 ```
 
+#### `state`
+
+Matches the state of the issue. Possible values are `open` and `closed`.
+
+Example:
+
+```yaml
+- state: open
+```
+
 #### `and`
 
 All conditions in the list must be satisfied.

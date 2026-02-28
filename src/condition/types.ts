@@ -1,9 +1,10 @@
-import { ContextEvent } from '../context/types.js'
+import { ContextEvent, ContextState } from '../context/types.js'
 
 export type Condition =
   | RegexCondition
   | RegexTitleCondition
   | EventTypeCondition
+  | StateCondition
   | MemberCondition
   | AndCondition
   | OrCondition
@@ -20,6 +21,10 @@ export interface RegexTitleCondition {
 
 export interface EventTypeCondition {
   event_type: ContextEvent
+}
+
+export interface StateCondition {
+  state: ContextState
 }
 
 export type MemberMode = 'include' | 'exclude' | 'only'

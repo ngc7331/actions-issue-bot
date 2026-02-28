@@ -50,6 +50,10 @@ export function getContext(): Context {
       : event === 'pull_request'
         ? (context.payload.pull_request?.author_association ?? '')
         : (context.payload.issue?.author_association ?? '')
+  const state =
+    event === 'pull_request'
+      ? ((context.payload.pull_request?.state as Context['state']) ?? 'open')
+      : ((context.payload.issue?.state as Context['state']) ?? 'open')
 
   return {
     owner,
@@ -58,6 +62,7 @@ export function getContext(): Context {
     issue_number,
     title,
     body,
+    state,
     issue_author,
     comment_author,
     author_association

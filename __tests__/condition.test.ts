@@ -7,7 +7,12 @@ function createContext(options?: {
   issue?: Partial<
     Pick<
       Context,
-      'issue_number' | 'title' | 'body' | 'issue_author' | 'author_association'
+      | 'issue_number'
+      | 'title'
+      | 'body'
+      | 'issue_author'
+      | 'author_association'
+      | 'state'
     >
   >
   comment?: {
@@ -25,6 +30,7 @@ function createContext(options?: {
   const issueBody = options?.issue?.body ?? 'This issue fails with an error'
   const issue_author = options?.issue?.issue_author ?? 'alice'
   const issueAuthorAssociation = options?.issue?.author_association ?? 'MEMBER'
+  const issueState = options?.issue?.state ?? 'open'
 
   const comment =
     options?.comment === null || event !== 'issue_comment'
@@ -49,6 +55,7 @@ function createContext(options?: {
     issue_number,
     title,
     body,
+    state: issueState,
     issue_author,
     comment_author: comment?.author,
     author_association
@@ -104,6 +111,25 @@ describe('condition evaluation', () => {
     expect(evaluateConditions([{ event_type: 'issues' }], commentCtx)).toBe(
       false
     )
+  })
+
+  it('matches state against issue and pull request state', () => {
+    const openIssueCtx = createContext({
+      issue: { state: 'open' },
+      comment: null
+    })
+    const closedIssueCtx = createContext({
+      issue: { state: 'closed' },
+      comment: null
+    })
+    const prCtx = createContext({
+      event: 'pull_request',
+      issue: { state: 'closed' }
+    })
+
+    expect(evaluateConditions([{ state: 'open' }], openIssueCtx)).toBe(true)
+    expect(evaluateConditions([{ state: 'open' }], closedIssueCtx)).toBe(false)
+    expect(evaluateConditions([{ state: 'closed' }], prCtx)).toBe(true)
   })
 
   it('honors logical and/or groupings', () => {

@@ -62,6 +62,7 @@ function createContext(overrides?: {
   const author_association = hasComment
     ? (comment?.author_association ?? '')
     : 'MEMBER'
+  const state: Context['state'] = 'open'
 
   return {
     owner: 'octo',
@@ -70,6 +71,7 @@ function createContext(overrides?: {
     issue_number,
     title,
     body,
+    state,
     issue_author,
     comment_author: comment?.author,
     author_association

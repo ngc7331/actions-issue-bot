@@ -33,6 +33,7 @@ describe('context parser', () => {
         number: 42,
         title: 'Bug report',
         body: 'Fails on startup',
+        state: 'open',
         user: { login: 'alice' },
         author_association: 'MEMBER'
       }
@@ -47,6 +48,7 @@ describe('context parser', () => {
       issue_number: 42,
       title: 'Bug report',
       body: 'Fails on startup',
+      state: 'open',
       issue_author: 'alice',
       comment_author: undefined,
       author_association: 'MEMBER'
@@ -60,6 +62,7 @@ describe('context parser', () => {
         number: 7,
         title: 'Bug report',
         body: 'Original body',
+        state: 'open',
         user: { login: 'alice' },
         author_association: 'MEMBER'
       },
@@ -75,6 +78,7 @@ describe('context parser', () => {
     expect(ctx.body).toBe('Comment body wins')
     expect(ctx.comment_author).toBe('bob')
     expect(ctx.author_association).toBe('NONE')
+    expect(ctx.state).toBe('open')
   })
 
   it('parses pull_request events', () => {
@@ -84,6 +88,7 @@ describe('context parser', () => {
         number: 5,
         title: 'PR title',
         body: 'PR body',
+        state: 'closed',
         user: { login: 'carol' },
         author_association: 'CONTRIBUTOR'
       }
@@ -93,6 +98,7 @@ describe('context parser', () => {
 
     expect(ctx.event).toBe('pull_request')
     expect(ctx.body).toBe('PR body')
+    expect(ctx.state).toBe('closed')
     expect(ctx.issue_author).toBe('carol')
     expect(ctx.author_association).toBe('CONTRIBUTOR')
     expect(ctx.comment_author).toBeUndefined()

@@ -8,4 +8,5 @@ export interface RuleConfig {
 
 export interface ConfigFile {
   rules: Record<string, RuleConfig>
+  global?: ConditionGroup
 }

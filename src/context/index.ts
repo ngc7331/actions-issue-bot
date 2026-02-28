@@ -1,2 +1,7 @@
-export type { GitHubClient, Context, GitHubIssueApiContext } from './types.js'
+export type {
+  GitHubClient,
+  Context,
+  ContextEvent,
+  GitHubIssueApiContext
+} from './types.js'
 export { getContext, getIssueApiContext } from './parser.js'

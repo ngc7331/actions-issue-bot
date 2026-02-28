@@ -2,10 +2,12 @@ import type { getOctokit } from '@actions/github'
 
 export type GitHubClient = ReturnType<typeof getOctokit>
 
+export type ContextEvent = 'issues' | 'issue_comment' | 'pull_request'
+
 export interface Context {
   owner: string
   repo: string
-  event: 'issues' | 'issue_comment' | 'pull_request'
+  event: ContextEvent
   issue_number: number // despite the name, this can be a pull request number as well since GitHub treats PRs as issues
   title: string
   body: string

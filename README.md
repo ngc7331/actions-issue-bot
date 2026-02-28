@@ -53,7 +53,26 @@ jobs:
 
 ## Configuration
 
-Create `.github/issue-bot.yaml` in your repository. Each rule consists of a
+Create `.github/issue-bot.yaml` in your repository.
+
+### Top-level Structure
+
+```yaml
+rules:
+  rule_name:
+    condition:
+      - condition_type: condition_value
+      # more conditions...
+    action:
+      action_type:
+        # action parameters...
+      # more actions...
+
+global:
+  - condition_type: condition_value
+```
+
+`rules` is a mapping of rule names to their definitions. Each rule consists of a
 `condition` block and an `action` block.
 
 `condition` block is a list of `key: value` pairs. The `key` is the type of
@@ -63,6 +82,10 @@ the `value` is the condition value.
 `action` block defines the actions to take when the conditions are met. It can
 include `comment`, `state`, `assign`, and `close` actions. Refer to the
 [Action Types](#action-types) section below for details.
+
+`global` is a list of conditions that apply to all rules. If specified, only
+issues/comments that satisfy all global conditions will be considered for rule
+matching. It shares the same format as the `condition` block in rules.
 
 ### Condition Types
 
@@ -102,6 +125,18 @@ Example:
 
 ```yaml
 - member: exclude
+```
+
+#### `event_type`
+
+Matches the event type. Possible values are `issues`, `issue_comment` and
+`pull_request`. This condition is useful when you want to trigger actions only
+on certain events.
+
+Example:
+
+```yaml
+- event_type: issues
 ```
 
 #### `and`

@@ -36,5 +36,8 @@ function normalizeConfig(input: unknown): ConfigFile {
     }
   }
 
-  return { rules }
+  return {
+    rules,
+    global: raw.global as ConfigFile['global']
+  }
 }

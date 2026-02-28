@@ -3,6 +3,7 @@ import type { Context } from '../context/index.js'
 import { Condition, ConditionGroup } from './types.js'
 import { evaluate as evaluateRegex } from './regex.js'
 import { evaluate as evaluateRegexTitle } from './regexTitle.js'
+import { evaluate as evaluateEventType } from './eventType.js'
 import { evaluate as evaluateMember } from './member.js'
 import { evaluate as evaluateAnd } from './and.js'
 import { evaluate as evaluateOr } from './or.js'
@@ -22,6 +23,10 @@ function evaluateCondition(condition: Condition, ctx: Context): boolean {
 
   if ('regex_title' in condition) {
     return evaluateRegexTitle(condition, ctx)
+  }
+
+  if ('event_type' in condition) {
+    return evaluateEventType(condition, ctx)
   }
 
   if ('member' in condition) {

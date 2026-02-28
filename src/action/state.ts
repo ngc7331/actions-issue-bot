@@ -1,31 +1,29 @@
 import * as core from '@actions/core'
 
-import type { GitHubClient, GitHubContext } from '../octokit.js'
-import { getIssueContext } from '../octokit.js'
+import type { GitHubClient, Context } from '../context/index.js'
+import { getIssueApiContext } from '../context/index.js'
 
 import { StateActionConfig } from './types.js'
 
 export async function run(
   octokit: GitHubClient,
-  ctx: GitHubContext,
+  ctx: Context,
   config: StateActionConfig
 ): Promise<void> {
   if (!config) return
 
-  const { owner, repo, issueNumber } = getIssueContext(ctx)
+  const apiCtx = getIssueApiContext(ctx)
 
   const state = config.reason === 'reopened' ? 'open' : 'closed'
-  const reason = config.reason
+  const state_reason = config.reason
 
   core.debug(
-    `[action:state] issue=${owner}/${repo}#${issueNumber} state=${state} reason=${reason}`
+    `[action:state] set state=${state} reason=${state_reason}`
   )
 
   await octokit.rest.issues.update({
-    owner,
-    repo,
-    issue_number: issueNumber,
+    ...apiCtx,
     state,
-    state_reason: reason
+    state_reason
   })
 }

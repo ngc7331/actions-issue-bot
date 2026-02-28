@@ -1,12 +1,12 @@
 import * as core from '@actions/core'
 
-import type { GitHubContext } from '../octokit.js'
+import type { Context } from '../context/index.js'
 import { Condition, OrCondition } from './types.js'
 
 export function evaluate(
   condition: OrCondition,
-  ctx: GitHubContext,
-  evaluator: (condition: Condition, ctx: GitHubContext) => boolean
+  ctx: Context,
+  evaluator: (condition: Condition, ctx: Context) => boolean
 ): boolean {
   const result = condition.or.some((entry) => evaluator(entry, ctx))
   core.debug(`[condition:or] count=${condition.or.length} matched=${result}`)

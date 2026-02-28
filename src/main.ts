@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
-import { context, getOctokit } from '@actions/github'
+import { getOctokit } from '@actions/github'
+import { getContext } from './context/index.js'
 import { parseConfig } from './config/index.js'
 import { evaluateConditions } from './condition/index.js'
 import { runActions } from './action/index.js'
@@ -17,15 +18,9 @@ export async function run(): Promise<void> {
 
     const octokit = getOctokit(token)
     const config = await parseConfig(configPath)
+    const context = getContext()
 
-    const issue = context.payload.issue
-
-    if (!issue) {
-      core.info(
-        'No issue payload detected; this action only handles issue and issue_comment events.'
-      )
-      return
-    }
+    core.info(`#${context.issue_number} event: ${context.event}`)
 
     for (const [ruleName, rule] of Object.entries(config.rules ?? {})) {
       core.info(`Evaluating rule: ${ruleName}`)

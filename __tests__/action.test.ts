@@ -6,7 +6,7 @@ import { run as runComment } from '../src/action/comment.js'
 import { run as runLabel } from '../src/action/label.js'
 import { run as runState } from '../src/action/state.js'
 import type { Action } from '../src/action/types.js'
-import type { GitHubClient, GitHubContext } from '../src/octokit.js'
+import type { GitHubClient, Context } from '../src/context/index.js'
 
 function createOctokitMock(): GitHubClient {
   const rest = {
@@ -36,39 +36,49 @@ function createOctokitMock(): GitHubClient {
 }
 
 function createContext(overrides?: {
-  comment?: Partial<NonNullable<GitHubContext['payload']['comment']>> | null
-}): GitHubContext {
-  const payload: GitHubContext['payload'] = {
-    issue: {
-      number: 7,
-      title: 'Bug in deployment',
-      body: 'Deployment failed',
-      user: { login: 'octocat' },
-      author_association: 'MEMBER'
-    }
-  }
+  comment?: {
+    body?: string
+    author?: string
+    author_association?: string
+  } | null
+}): Context {
+  const hasComment = overrides?.comment !== null && overrides?.comment !== undefined
+  const comment = hasComment
+    ? {
+        body: 'I hit the same bug',
+        author: 'triager',
+        author_association: 'NONE',
+        ...overrides?.comment
+      }
+    : undefined
 
-  if (overrides?.comment !== null) {
-    payload.comment = {
-      id: 123,
-      body: 'I hit the same bug',
-      user: { login: 'triager' },
-      author_association: 'NONE',
-      ...(overrides?.comment ?? {})
-    }
-  }
+  const event: Context['event'] = hasComment ? 'issue_comment' : 'issues'
+  const title = 'Bug in deployment'
+  const issueBody = 'Deployment failed'
+  const issue_number = 7
+  const issue_author = 'octocat'
+  const body = event === 'issue_comment' ? comment?.body ?? '' : issueBody
+  const author_association = hasComment
+    ? comment?.author_association ?? ''
+    : 'MEMBER'
 
   return {
-    eventName: 'issues',
-    repo: { owner: 'octo', repo: 'hello' },
-    payload
-  } as GitHubContext
+    owner: 'octo',
+    repo: 'hello',
+    event,
+    issue_number,
+    title,
+    body,
+    issue_author,
+    comment_author: comment?.author,
+    author_association
+  }
 }
 
 describe('action runners', () => {
   it('renders comment templates with issue/comment authors', async () => {
     const octokit = createOctokitMock()
-    const ctx = createContext()
+    const ctx = createContext({ comment: { body: 'I hit the same bug' } })
 
     await runComment(octokit, ctx, {
       message: 'Ping {{ issue.author }} from {{ comment.author }}'

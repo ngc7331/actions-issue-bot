@@ -1,29 +1,20 @@
 import * as core from '@actions/core'
 
-import type { GitHubContext } from '../octokit.js'
+import type { Context } from '../context/index.js'
 import { previewString } from '../utils/index.js'
 import { RegexCondition } from './types.js'
 
 export function evaluate(
   condition: RegexCondition,
-  ctx: GitHubContext
+  ctx: Context
 ): boolean {
   const pattern = new RegExp(condition.regex)
-  const issueBody = ctx.payload.issue?.body ?? null
-  const commentBody = ctx.payload.comment?.body ?? null
-  const sources = [issueBody, commentBody].filter(Boolean) as string[]
 
-  const matched = sources.some((text) => {
-    const result = pattern.test(text)
-    core.debug(
-      `[condition:regex] pattern="${condition.regex}" source="${previewString(text)}" matched=${result}`
-    )
-    return result
-  })
+  const body = ctx.body
 
-  if (!sources.length) {
-    core.debug('[condition:regex] no sources to evaluate')
-  }
-
-  return matched
+  const result = pattern.test(body)
+  core.debug(
+    `[condition:regex] pattern="${condition.regex}" source="${previewString(body)}" matched=${result}`
+  )
+  return result
 }

@@ -1,38 +1,34 @@
 import * as core from '@actions/core'
 
-import type { GitHubClient, GitHubContext } from '../octokit.js'
-import { getIssueContext } from '../octokit.js'
+import type { GitHubClient, Context } from '../context/index.js'
+import { getIssueApiContext } from '../context/index.js'
 import { normalizeStringList } from '../utils/index.js'
 
 import { LabelActionConfig } from './types.js'
 
 export async function run(
   octokit: GitHubClient,
-  ctx: GitHubContext,
+  ctx: Context,
   action: LabelActionConfig
 ): Promise<void> {
   if (!action) return
 
   const addList = normalizeStringList(action.add)
   const removeList = normalizeStringList(action.remove)
-  const { owner, repo, issueNumber } = getIssueContext(ctx)
+  const apiCtx = getIssueApiContext(ctx)
 
   if (action.remove_all) {
     core.debug(`[action:label] remove_all`)
 
     await octokit.rest.issues.removeAllLabels({
-      owner,
-      repo,
-      issue_number: issueNumber
+      ...apiCtx
     })
   } else if (removeList.length > 0) {
     for (const name of removeList) {
       core.debug(`[action:label] remove=${name}`)
 
       await octokit.rest.issues.removeLabel({
-        owner,
-        repo,
-        issue_number: issueNumber,
+        ...apiCtx,
         name
       })
     }
@@ -42,9 +38,7 @@ export async function run(
     core.debug(`[action:label] add=${addList.join(',')}`)
 
     await octokit.rest.issues.addLabels({
-      owner,
-      repo,
-      issue_number: issueNumber,
+      ...apiCtx,
       labels: addList
     })
   }

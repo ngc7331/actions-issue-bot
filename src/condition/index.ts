@@ -1,4 +1,4 @@
-import type { GitHubContext } from '../octokit.js'
+import type { Context } from '../context/index.js'
 
 import { Condition, ConditionGroup } from './types.js'
 import { evaluate as evaluateRegex } from './regex.js'
@@ -9,13 +9,13 @@ import { evaluate as evaluateOr } from './or.js'
 
 export function evaluateConditions(
   conditions: ConditionGroup | undefined,
-  ctx: GitHubContext
+  ctx: Context
 ): boolean {
   if (!conditions || conditions.length === 0) return true
   return conditions.every((condition) => evaluateCondition(condition, ctx))
 }
 
-function evaluateCondition(condition: Condition, ctx: GitHubContext): boolean {
+function evaluateCondition(condition: Condition, ctx: Context): boolean {
   if ('regex' in condition) {
     return evaluateRegex(condition, ctx)
   }

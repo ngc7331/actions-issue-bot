@@ -1,19 +1,19 @@
 import * as core from '@actions/core'
 
-import type { GitHubClient, GitHubContext } from '../octokit.js'
-import { getIssueContext } from '../octokit.js'
+import type { GitHubClient, Context } from '../context/index.js'
+import { getIssueApiContext } from '../context/index.js'
 import { normalizeStringList } from '../utils/index.js'
 
 import { AssignActionConfig } from './types.js'
 
 export async function run(
   octokit: GitHubClient,
-  ctx: GitHubContext,
+  ctx: Context,
   action: AssignActionConfig
 ): Promise<void> {
   if (!action) return
 
-  const { owner, repo, issueNumber } = getIssueContext(ctx)
+  const apiCtx = getIssueApiContext(ctx)
 
   const addList = normalizeStringList(action.add)
   const removeList = normalizeStringList(action.remove)
@@ -21,9 +21,7 @@ export async function run(
   if (action.remove_all) {
     const currentList = await octokit.rest.issues
       .listAssignees({
-        owner,
-        repo,
-        issue_number: issueNumber
+        ...apiCtx
       })
       .then((response) => response.data.map((user) => user.login))
 
@@ -33,9 +31,7 @@ export async function run(
       )
 
       await octokit.rest.issues.removeAssignees({
-        owner,
-        repo,
-        issue_number: issueNumber,
+        ...apiCtx,
         assignees: currentList
       })
     }
@@ -43,9 +39,7 @@ export async function run(
     core.debug(`[action:assign] remove assignees=${removeList.join(',')}`)
 
     await octokit.rest.issues.removeAssignees({
-      owner,
-      repo,
-      issue_number: issueNumber,
+      ...apiCtx,
       assignees: removeList
     })
   }
@@ -54,9 +48,7 @@ export async function run(
     core.debug(`[action:assign] add assignees=${addList.join(',')}`)
 
     await octokit.rest.issues.addAssignees({
-      owner,
-      repo,
-      issue_number: issueNumber,
+      ...apiCtx,
       assignees: addList
     })
   }

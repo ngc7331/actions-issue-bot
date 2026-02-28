@@ -1,4 +1,4 @@
-import type { GitHubClient, GitHubContext } from '../octokit.js'
+import type { GitHubClient, Context } from '../context/index.js'
 
 import type { Action } from './types.js'
 import { run as runComment } from './comment.js'
@@ -9,7 +9,7 @@ import { run as runState } from './state.js'
 export async function runActions(
   octokit: GitHubClient,
   actions: Action | undefined,
-  ctx: GitHubContext
+  ctx: Context
 ): Promise<void> {
   if (!actions) return
 

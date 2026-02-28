@@ -1,17 +1,13 @@
 import * as core from '@actions/core'
 
-import type { GitHubContext } from '../octokit.js'
+import type { Context } from '../context/index.js'
 import { MemberCondition } from './types.js'
 
 export function evaluate(
   condition: MemberCondition,
-  ctx: GitHubContext
+  ctx: Context
 ): boolean {
-  const authorAssociation = (
-    ctx.payload.comment?.author_association ??
-    ctx.payload.issue?.author_association ??
-    ''
-  ).toUpperCase()
+  const authorAssociation = (ctx.author_association ?? '').toUpperCase()
   const isMember = ['MEMBER', 'OWNER', 'COLLABORATOR'].includes(
     authorAssociation
   )

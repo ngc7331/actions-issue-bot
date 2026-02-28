@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 
-import type { GitHubClient, GitHubContext } from '../octokit.js'
-import { getIssueContext } from '../octokit.js'
+import type { GitHubClient, Context } from '../context/index.js'
+import { getIssueApiContext } from '../context/index.js'
 import { previewString } from '../utils/index.js'
 
 import { CommentActionConfig } from './types.js'
@@ -18,24 +18,22 @@ function applyTemplate(
 
 export async function run(
   octokit: GitHubClient,
-  ctx: GitHubContext,
+  ctx: Context,
   config: CommentActionConfig
 ): Promise<void> {
-  const { owner, repo, issueNumber } = getIssueContext(ctx)
+  const apiCtx = getIssueApiContext(ctx)
   const message = config.message
 
   const body = applyTemplate(
     message,
-    ctx.payload.issue?.user?.login,
-    ctx.payload.comment?.user?.login
+    ctx.issue_author,
+    ctx.comment_author
   )
 
   core.debug(`[action:comment] comment ${previewString(body)}`)
 
   await octokit.rest.issues.createComment({
-    owner,
-    repo,
-    issue_number: issueNumber,
+    ...apiCtx,
     body
   })
 }

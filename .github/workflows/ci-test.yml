@@ -1,0 +1,21 @@
+name: Issue Bot CI Test
+on:
+  issues:
+    types: [opened, edited, reopened]
+  issue_comment:
+    types: [created]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run issue bot
+        uses: ./
+        with:
+          config: .github/issue-bot-test.yaml
+          token: ${{ secrets.GITHUB_TOKEN }}

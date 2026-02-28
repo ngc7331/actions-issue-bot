@@ -1,0 +1,26 @@
+rules:
+  incomplete_attachment:
+    condition:
+      - or:
+          - regex: '<!-- Uploading .*? -->'
+          - regex: '<!-- Failed to upload .*? -->'
+      - member: only
+    action:
+      comment:
+        message:
+          '@{{ comment.author }} seems you have a incomplete upload. Please
+          check.'
+      label:
+        add: 'more info needed'
+      assign:
+        add: ngc7331
+
+  resolve:
+    condition:
+      - regex: "\/resolve"
+      - member: only
+    action:
+      label:
+        remove: 'more info needed'
+      state:
+        reason: completed

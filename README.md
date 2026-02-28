@@ -28,24 +28,25 @@ on:
   issue_comment:
     types: [created]
 
- permissions:
-   issues: write
-
 jobs:
   triage:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - name: Run issue bot
         uses: ngc7331/actions-issue-bot@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Inputs
 
-- `config`: Path to the YAML configuration file. Default is
-  `.github/issue-bot.yaml`.
-- `token`: GitHub token with issues:write permission (defaults to GITHUB_TOKEN
-  if not provided).
+- `config`: Path to the YAML configuration file. Default is `.github/issue-bot.yaml`.
+- `token`: GitHub token with issues:write permission (or use GITHUB_TOKEN environment variable).
 
 ## Configuration
 

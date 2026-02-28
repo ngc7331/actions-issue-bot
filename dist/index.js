@@ -56465,6 +56465,60 @@ function requireGithub () {
 
 var githubExports = requireGithub();
 
+function getContext() {
+    const owner = githubExports.context.repo.owner;
+    const repo = githubExports.context.repo.repo;
+    if (githubExports.context.eventName !== 'issues' &&
+        githubExports.context.eventName !== 'issue_comment' &&
+        githubExports.context.eventName !== 'pull_request') {
+        throw new Error(`Unexpected event: ${githubExports.context.eventName}, this action only supports issues, issue_comment, and pull_request events.`);
+    }
+    const event = githubExports.context.eventName;
+    const issue_number = event === 'pull_request'
+        ? githubExports.context.payload.pull_request?.number
+        : githubExports.context.payload.issue?.number;
+    if (!issue_number) {
+        throw new Error('Context missing issue or pull request number');
+    }
+    const title = event === 'pull_request'
+        ? (githubExports.context.payload.pull_request?.title ?? '')
+        : (githubExports.context.payload.issue?.title ?? '');
+    const body = event === 'pull_request'
+        ? (githubExports.context.payload.pull_request?.body ?? '')
+        : event === 'issue_comment'
+            ? (githubExports.context.payload.comment?.body ?? '')
+            : (githubExports.context.payload.issue?.body ?? '');
+    const issue_author = event === 'pull_request'
+        ? (githubExports.context.payload.pull_request?.user?.login ?? '')
+        : (githubExports.context.payload.issue?.user?.login ?? '');
+    const comment_author = event === 'issue_comment'
+        ? (githubExports.context.payload.comment?.user?.login ?? '')
+        : undefined;
+    const author_association = event === 'issue_comment'
+        ? (githubExports.context.payload.comment?.author_association ?? '')
+        : event === 'pull_request'
+            ? (githubExports.context.payload.pull_request?.author_association ?? '')
+            : (githubExports.context.payload.issue?.author_association ?? '');
+    return {
+        owner,
+        repo,
+        event,
+        issue_number,
+        title,
+        body,
+        issue_author,
+        comment_author,
+        author_association
+    };
+}
+function getIssueApiContext(ctx) {
+    return {
+        owner: ctx.owner,
+        repo: ctx.repo,
+        issue_number: ctx.issue_number
+    };
+}
+
 const ALIAS = Symbol.for('yaml.alias');
 const DOC = Symbol.for('yaml.document');
 const MAP = Symbol.for('yaml.map');
@@ -63949,37 +64003,22 @@ function normalizeStringList(input, unique = false) {
 
 function evaluate$4(condition, ctx) {
     const pattern = new RegExp(condition.regex);
-    const issueBody = ctx.payload.issue?.body ?? null;
-    const commentBody = ctx.payload.comment?.body ?? null;
-    const sources = [issueBody, commentBody].filter(Boolean);
-    const matched = sources.some((text) => {
-        const result = pattern.test(text);
-        debug(`[condition:regex] pattern="${condition.regex}" source="${previewString(text)}" matched=${result}`);
-        return result;
-    });
-    if (!sources.length) {
-        debug('[condition:regex] no sources to evaluate');
-    }
-    return matched;
+    const body = ctx.body;
+    const result = pattern.test(body);
+    debug(`[condition:regex] pattern="${condition.regex}" source="${previewString(body)}" matched=${result}`);
+    return result;
 }
 
 function evaluate$3(condition, ctx) {
-    // skip if not triggered by an issue
-    if (ctx.eventName !== 'issues') {
-        debug('[condition:regex_title] skipped: event is not "issues"');
-        return false;
-    }
     const pattern = new RegExp(condition.regex_title);
-    const title = ctx.payload.issue?.title ?? '';
+    const title = ctx.title;
     const matched = pattern.test(title);
     debug(`[condition:regex_title] pattern="${condition.regex_title}" title="${previewString(title)}" matched=${matched}`);
     return matched;
 }
 
 function evaluate$2(condition, ctx) {
-    const authorAssociation = (ctx.payload.comment?.author_association ??
-        ctx.payload.issue?.author_association ??
-        '').toUpperCase();
+    const authorAssociation = (ctx.author_association ?? '').toUpperCase();
     const isMember = ['MEMBER', 'OWNER', 'COLLABORATOR'].includes(authorAssociation);
     const result = condition.member === 'include'
         ? true
@@ -64028,32 +64067,18 @@ function evaluateCondition(condition, ctx) {
     return false;
 }
 
-function getIssueContext(ctx) {
-    const issueNumber = ctx.payload.issue?.number;
-    if (!issueNumber) {
-        throw new Error('Issue context missing issue number');
-    }
-    return {
-        owner: ctx.repo.owner,
-        repo: ctx.repo.repo,
-        issueNumber
-    };
-}
-
 function applyTemplate(template, issueAuthor, commentAuthor) {
     return template
         .replaceAll('{{ issue.author }}', issueAuthor ?? '')
         .replaceAll('{{ comment.author }}', (commentAuthor || issueAuthor) ?? '');
 }
 async function run$4(octokit, ctx, config) {
-    const { owner, repo, issueNumber } = getIssueContext(ctx);
+    const apiCtx = getIssueApiContext(ctx);
     const message = config.message;
-    const body = applyTemplate(message, ctx.payload.issue?.user?.login, ctx.payload.comment?.user?.login);
+    const body = applyTemplate(message, ctx.issue_author, ctx.comment_author);
     debug(`[action:comment] comment ${previewString(body)}`);
     await octokit.rest.issues.createComment({
-        owner,
-        repo,
-        issue_number: issueNumber,
+        ...apiCtx,
         body
     });
 }
@@ -64063,22 +64088,18 @@ async function run$3(octokit, ctx, action) {
         return;
     const addList = normalizeStringList(action.add);
     const removeList = normalizeStringList(action.remove);
-    const { owner, repo, issueNumber } = getIssueContext(ctx);
+    const apiCtx = getIssueApiContext(ctx);
     if (action.remove_all) {
         debug(`[action:label] remove_all`);
         await octokit.rest.issues.removeAllLabels({
-            owner,
-            repo,
-            issue_number: issueNumber
+            ...apiCtx
         });
     }
     else if (removeList.length > 0) {
         for (const name of removeList) {
             debug(`[action:label] remove=${name}`);
             await octokit.rest.issues.removeLabel({
-                owner,
-                repo,
-                issue_number: issueNumber,
+                ...apiCtx,
                 name
             });
         }
@@ -64086,9 +64107,7 @@ async function run$3(octokit, ctx, action) {
     if (addList.length > 0) {
         debug(`[action:label] add=${addList.join(',')}`);
         await octokit.rest.issues.addLabels({
-            owner,
-            repo,
-            issue_number: issueNumber,
+            ...apiCtx,
             labels: addList
         });
     }
@@ -64097,23 +64116,19 @@ async function run$3(octokit, ctx, action) {
 async function run$2(octokit, ctx, action) {
     if (!action)
         return;
-    const { owner, repo, issueNumber } = getIssueContext(ctx);
+    const apiCtx = getIssueApiContext(ctx);
     const addList = normalizeStringList(action.add);
     const removeList = normalizeStringList(action.remove);
     if (action.remove_all) {
         const currentList = await octokit.rest.issues
             .listAssignees({
-            owner,
-            repo,
-            issue_number: issueNumber
+            ...apiCtx
         })
             .then((response) => response.data.map((user) => user.login));
         if (currentList.length > 0) {
             debug(`[action:assign] remove_all assignees=${currentList.join(',')}`);
             await octokit.rest.issues.removeAssignees({
-                owner,
-                repo,
-                issue_number: issueNumber,
+                ...apiCtx,
                 assignees: currentList
             });
         }
@@ -64121,18 +64136,14 @@ async function run$2(octokit, ctx, action) {
     else if (removeList.length > 0) {
         debug(`[action:assign] remove assignees=${removeList.join(',')}`);
         await octokit.rest.issues.removeAssignees({
-            owner,
-            repo,
-            issue_number: issueNumber,
+            ...apiCtx,
             assignees: removeList
         });
     }
     if (addList.length > 0) {
         debug(`[action:assign] add assignees=${addList.join(',')}`);
         await octokit.rest.issues.addAssignees({
-            owner,
-            repo,
-            issue_number: issueNumber,
+            ...apiCtx,
             assignees: addList
         });
     }
@@ -64141,16 +64152,14 @@ async function run$2(octokit, ctx, action) {
 async function run$1(octokit, ctx, config) {
     if (!config)
         return;
-    const { owner, repo, issueNumber } = getIssueContext(ctx);
+    const apiCtx = getIssueApiContext(ctx);
     const state = config.reason === 'reopened' ? 'open' : 'closed';
-    const reason = config.reason;
-    debug(`[action:state] issue=${owner}/${repo}#${issueNumber} state=${state} reason=${reason}`);
+    const state_reason = config.reason;
+    debug(`[action:state] set state=${state} reason=${state_reason}`);
     await octokit.rest.issues.update({
-        owner,
-        repo,
-        issue_number: issueNumber,
+        ...apiCtx,
         state,
-        state_reason: reason
+        state_reason
     });
 }
 
@@ -64182,18 +64191,15 @@ async function run() {
         }
         const octokit = githubExports.getOctokit(token);
         const config = await parseConfig(configPath);
-        const issue = githubExports.context.payload.issue;
-        if (!issue) {
-            info('No issue payload detected; this action only handles issue and issue_comment events.');
-            return;
-        }
+        const context = getContext();
+        info(`#${context.issue_number} event: ${context.event}`);
         for (const [ruleName, rule] of Object.entries(config.rules ?? {})) {
             info(`Evaluating rule: ${ruleName}`);
-            const matched = evaluateConditions(rule.condition, githubExports.context);
+            const matched = evaluateConditions(rule.condition, context);
             info(`Rule ${ruleName} matched=${matched}`);
             if (!matched)
                 continue;
-            await runActions(octokit, rule.action, githubExports.context);
+            await runActions(octokit, rule.action, context);
         }
     }
     catch (error) {

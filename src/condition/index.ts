@@ -10,10 +10,10 @@ import { evaluate as evaluateAnd } from './and.js'
 import { evaluate as evaluateOr } from './or.js'
 
 export function evaluateConditions(
-  conditions: ConditionGroup | undefined,
+  conditions: ConditionGroup,
   ctx: Context
 ): boolean {
-  if (!conditions || conditions.length === 0) return true
+  if (conditions.length === 0) return true
   return conditions.every((condition) => evaluateCondition(condition, ctx))
 }
 

@@ -22,11 +22,16 @@ export async function run(): Promise<void> {
 
     core.info(`#${context.issue_number} event: ${context.event}`)
 
-    const globalMatched = evaluateConditions(config.global, context)
-    core.info(`Global conditions matched=${globalMatched}`)
-    if (!globalMatched) {
-      core.info('Global conditions not satisfied; skipping all rules.')
-      return
+    if (!config.global) {
+      core.info('No global conditions defined.')
+    } else {
+      core.info('Evaluating global conditions...')
+      const globalMatched = evaluateConditions(config.global, context)
+      core.info(`Global conditions matched=${globalMatched}`)
+      if (!globalMatched) {
+        core.info('Global conditions not satisfied; skipping all rules.')
+        return
+      }
     }
 
     for (const [ruleName, rule] of Object.entries(config.rules ?? {})) {

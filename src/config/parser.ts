@@ -16,10 +16,7 @@ import type {
   StateCondition
 } from '../condition/types.js'
 import { MEMBER_MODES } from '../condition/types.js'
-import type {
-  ContextEvent,
-  ContextState
-} from '../context/types.js'
+import type { ContextEvent, ContextState } from '../context/types.js'
 import { CONTEXT_EVENTS, CONTEXT_STATES } from '../context/types.js'
 
 export async function parseConfig(filePath: string): Promise<ConfigFile> {
@@ -63,7 +60,9 @@ function normalizeConfig(input: unknown): ConfigFile {
 }
 
 function validateConfig(config: ConfigFile): void {
-  validateConditionGroup('global', config.global)
+  if (config.global) {
+    validateConditionGroup('global', config.global)
+  }
 
   for (const [ruleName, rule] of Object.entries(config.rules)) {
     if (!rule.condition) {
@@ -84,7 +83,7 @@ const validMemberModes = new Set<MemberMode>(MEMBER_MODES)
 
 function validateConditionGroup(
   name: string,
-  conditions: ConditionGroup | undefined
+  conditions: ConditionGroup
 ): void {
   if (!conditions) return
   if (!Array.isArray(conditions)) {
@@ -151,7 +150,9 @@ function validateConditionGroup(
       }
       case 'and':
       case 'or': {
-        const nested = (condition as AndCondition | OrCondition)[key] as ConditionGroup
+        const nested = (condition as AndCondition | OrCondition)[
+          key
+        ] as ConditionGroup
         validateConditionGroup(`${name}.${key}`, nested)
         break
       }

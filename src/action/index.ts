@@ -8,11 +8,9 @@ import { run as runState } from './state.js'
 
 export async function runActions(
   octokit: GitHubClient,
-  actions: Action | undefined,
+  actions: Action,
   ctx: Context
 ): Promise<void> {
-  if (!actions) return
-
   const tasks: Array<Promise<unknown>> = []
 
   if (actions.comment) {

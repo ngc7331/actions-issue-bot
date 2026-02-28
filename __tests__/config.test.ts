@@ -34,6 +34,31 @@ describe('config.parseConfig', () => {
     ).toBeUndefined()
   })
 
+  it('parses global conditions', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'issue-bot-'))
+    const filePath = path.join(tmpDir, 'config.yaml')
+
+    await writeFile(
+      filePath,
+      [
+        'global:',
+        '  - event_type: issue_comment',
+        'rules:',
+        '  ping:',
+        '    condition:',
+        "      - regex: 'ping'",
+        '    action:',
+        '      comment:',
+        "        message: 'pong'"
+      ].join('\n')
+    )
+
+    const config = await parseConfig(filePath)
+
+    expect(config.global).toEqual([{ event_type: 'issue_comment' }])
+    expect(config.rules.ping.condition).toEqual([{ regex: 'ping' }])
+  })
+
   it('throws when the rules map is missing', async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'issue-bot-'))
     const filePath = path.join(tmpDir, 'config.yaml')

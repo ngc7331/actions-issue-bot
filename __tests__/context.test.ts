@@ -1,10 +1,16 @@
 import { jest } from '@jest/globals'
 
-const mockContext = {
+type MockContext = {
+  repo: { owner: string; repo: string }
+  eventName: string
+  payload: Record<string, unknown>
+}
+
+const mockContext: MockContext = {
   repo: { owner: 'octo', repo: 'hello' },
   eventName: 'issues',
   payload: {}
-} as any
+}
 
 jest.unstable_mockModule('@actions/github', () => ({
   context: mockContext,

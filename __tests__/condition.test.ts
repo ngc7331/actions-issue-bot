@@ -89,6 +89,23 @@ describe('condition evaluation', () => {
     expect(evaluateConditions([{ member: 'only' }], outsiderCtx)).toBe(false)
   })
 
+  it('matches event_type against normalized event name', () => {
+    const issueCtx = createContext({ comment: null })
+    const commentCtx = createContext({ event: 'issue_comment' })
+    const prCtx = createContext({ event: 'pull_request' })
+
+    expect(evaluateConditions([{ event_type: 'issues' }], issueCtx)).toBe(true)
+    expect(
+      evaluateConditions([{ event_type: 'issue_comment' }], commentCtx)
+    ).toBe(true)
+    expect(evaluateConditions([{ event_type: 'pull_request' }], prCtx)).toBe(
+      true
+    )
+    expect(evaluateConditions([{ event_type: 'issues' }], commentCtx)).toBe(
+      false
+    )
+  })
+
   it('honors logical and/or groupings', () => {
     const matchBothCtx = createContext({
       comment: { body: 'a critical bug', author_association: 'NONE' }

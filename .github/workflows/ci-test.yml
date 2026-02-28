@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run issue bot
-        uses: ./
+        uses: ngc7331/actions-issue-bot@v1
         with:
           config: .github/issue-bot-test.yaml
           token: ${{ secrets.GITHUB_TOKEN }}

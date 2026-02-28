@@ -42,7 +42,8 @@ function createContext(overrides?: {
     author_association?: string
   } | null
 }): Context {
-  const hasComment = overrides?.comment !== null && overrides?.comment !== undefined
+  const hasComment =
+    overrides?.comment !== null && overrides?.comment !== undefined
   const comment = hasComment
     ? {
         body: 'I hit the same bug',
@@ -57,9 +58,9 @@ function createContext(overrides?: {
   const issueBody = 'Deployment failed'
   const issue_number = 7
   const issue_author = 'octocat'
-  const body = event === 'issue_comment' ? comment?.body ?? '' : issueBody
+  const body = event === 'issue_comment' ? (comment?.body ?? '') : issueBody
   const author_association = hasComment
-    ? comment?.author_association ?? ''
+    ? (comment?.author_association ?? '')
     : 'MEMBER'
 
   return {

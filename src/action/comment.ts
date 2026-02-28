@@ -24,11 +24,7 @@ export async function run(
   const apiCtx = getIssueApiContext(ctx)
   const message = config.message
 
-  const body = applyTemplate(
-    message,
-    ctx.issue_author,
-    ctx.comment_author
-  )
+  const body = applyTemplate(message, ctx.issue_author, ctx.comment_author)
 
   core.debug(`[action:comment] comment ${previewString(body)}`)
 

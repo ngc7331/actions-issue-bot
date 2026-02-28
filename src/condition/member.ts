@@ -3,10 +3,7 @@ import * as core from '@actions/core'
 import type { Context } from '../context/index.js'
 import { MemberCondition } from './types.js'
 
-export function evaluate(
-  condition: MemberCondition,
-  ctx: Context
-): boolean {
+export function evaluate(condition: MemberCondition, ctx: Context): boolean {
   const authorAssociation = (ctx.author_association ?? '').toUpperCase()
   const isMember = ['MEMBER', 'OWNER', 'COLLABORATOR'].includes(
     authorAssociation

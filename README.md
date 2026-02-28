@@ -16,7 +16,8 @@ and assignments based on YAML rules.
 ## Basic Usage
 
 1. Add a workflow that runs on issue and issue_comment events.
-2. Create the YAML configuration file (default path shown above) to define matching rules and actions.
+2. Create the YAML configuration file (default path shown above) to define
+   matching rules and actions.
 
 Example workflow file `.github/workflows/issue-bot.yml`:
 
@@ -45,8 +46,10 @@ jobs:
 
 ## Inputs
 
-- `config`: Path to the YAML configuration file. Default is `.github/issue-bot.yaml`.
-- `token`: GitHub token with issues:write permission (or use GITHUB_TOKEN environment variable).
+- `config`: Path to the YAML configuration file. Default is
+  `.github/issue-bot.yaml`.
+- `token`: GitHub token with issues:write permission (or use GITHUB_TOKEN
+  environment variable).
 
 ## Configuration
 

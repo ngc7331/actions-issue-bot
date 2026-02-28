@@ -11,7 +11,8 @@ jest.unstable_mockModule('@actions/github', () => ({
   getOctokit: jest.fn()
 }))
 
-const { getContext, getIssueApiContext } = await import('../src/context/index.js')
+const { getContext, getIssueApiContext } =
+  await import('../src/context/index.js')
 
 describe('context parser', () => {
   beforeEach(() => {

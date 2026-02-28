@@ -17,9 +17,7 @@ export async function run(
   const state = config.reason === 'reopened' ? 'open' : 'closed'
   const state_reason = config.reason
 
-  core.debug(
-    `[action:state] set state=${state} reason=${state_reason}`
-  )
+  core.debug(`[action:state] set state=${state} reason=${state_reason}`)
 
   await octokit.rest.issues.update({
     ...apiCtx,

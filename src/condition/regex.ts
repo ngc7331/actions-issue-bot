@@ -4,10 +4,7 @@ import type { Context } from '../context/index.js'
 import { previewString } from '../utils/index.js'
 import { RegexCondition } from './types.js'
 
-export function evaluate(
-  condition: RegexCondition,
-  ctx: Context
-): boolean {
+export function evaluate(condition: RegexCondition, ctx: Context): boolean {
   const pattern = new RegExp(condition.regex)
 
   const body = ctx.body

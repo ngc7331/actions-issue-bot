@@ -24,8 +24,7 @@ function createContext(options?: {
   const title = options?.issue?.title ?? 'Bug: failure occurs'
   const issueBody = options?.issue?.body ?? 'This issue fails with an error'
   const issue_author = options?.issue?.issue_author ?? 'alice'
-  const issueAuthorAssociation =
-    options?.issue?.author_association ?? 'MEMBER'
+  const issueAuthorAssociation = options?.issue?.author_association ?? 'MEMBER'
 
   const comment =
     options?.comment === null || event !== 'issue_comment'
@@ -37,10 +36,10 @@ function createContext(options?: {
           ...options?.comment
         }
 
-  const body = event === 'issue_comment' ? comment?.body ?? '' : issueBody
+  const body = event === 'issue_comment' ? (comment?.body ?? '') : issueBody
   const author_association =
     event === 'issue_comment'
-      ? comment?.author_association ?? ''
+      ? (comment?.author_association ?? '')
       : issueAuthorAssociation
 
   return {

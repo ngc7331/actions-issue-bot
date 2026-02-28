@@ -15,31 +15,30 @@ and assignments based on YAML rules.
 
 ## Basic Usage
 
-1. Add a workflow that runs on issue and issue_comment events: Example workflow
-   file `.github/workflows/issue-bot.yml`:
+1. Add a workflow that runs on issue and issue_comment events.
+2. Create the YAML configuration file (default path shown above) to define matching rules and actions.
 
-   ```yaml
-   name: Issue Bot
-   on:
-     issues:
-       types: [opened, edited, reopened]
-     issue_comment:
-       types: [created]
+Example workflow file `.github/workflows/issue-bot.yml`:
 
-    permissions:
-      issues: write
+```yaml
+name: Issue Bot
+on:
+  issues:
+    types: [opened, edited, reopened]
+  issue_comment:
+    types: [created]
 
-   jobs:
-     triage:
-       runs-on: ubuntu-latest
-       steps:
-         - uses: actions/checkout@v4
-         - name: Run issue bot
-           uses: ngc7331/actions-issue-bot@v1
-   ```
+ permissions:
+   issues: write
 
-2. Create the YAML configuration file (default path shown above) to define
-   matching rules and actions.
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run issue bot
+        uses: ngc7331/actions-issue-bot@v1
+```
 
 ## Inputs
 

@@ -1,11 +1,9 @@
 rules:
   incomplete_attachment:
     condition:
-      - regex_title: '[TEST]'
       - or:
           - regex: '<!-- Uploading .*? -->'
           - regex: '<!-- Failed to upload .*? -->'
-      - member: only
     action:
       comment:
         message:
@@ -18,9 +16,9 @@ rules:
 
   resolve:
     condition:
-      - regex_title: '[TEST]'
-      - regex: "\/resolve"
-      - member: only
+      - regex: "^\/resolve"
+      - state: open
+      - event_type: issue_comment
     action:
       label:
         remove: 'more info needed'
@@ -29,11 +27,15 @@ rules:
 
   unresolve:
     condition:
-      - regex_title: '[TEST]'
-      - regex: "\/unresolve"
-      - member: only
+      - regex: "^\/unresolve"
+      - state: closed
+      - event_type: issue_comment
     action:
       label:
         add: 're-opened'
       state:
         reason: reopened
+
+global:
+  - regex_title: '[TEST]'
+  - member: only

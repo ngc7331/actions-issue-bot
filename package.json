@@ -1,20 +1,24 @@
 {
-  "name": "typescript-action",
-  "description": "GitHub Actions TypeScript template",
-  "version": "0.0.0",
-  "author": "",
+  "name": "actions-issue-bot",
+  "description": "Automate replies, labels, assignments, and closing issues based on YAML rules.",
+  "version": "1.0.0",
+  "author": "ngc7331",
   "type": "module",
   "private": true,
-  "homepage": "https://github.com/actions/typescript-action",
+  "homepage": "https://github.com/ngc7331/actions-issue-bot",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/actions/typescript-action.git"
+    "url": "git+https://github.com/ngc7331/actions-issue-bot.git"
   },
   "bugs": {
-    "url": "https://github.com/actions/typescript-action/issues"
+    "url": "https://github.com/ngc7331/actions-issue-bot/issues"
   },
   "keywords": [
-    "actions"
+    "github-actions",
+    "issues",
+    "triage",
+    "automation",
+    "bot"
   ],
   "exports": {
     ".": "./dist/index.js"
@@ -37,7 +41,9 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^3.0.0"
+    "@actions/core": "^3.0.0",
+    "@actions/github": "^6.0.0",
+    "yaml": "^2.6.0"
   },
   "devDependencies": {
     "@eslint/compat": "^2.0.2",

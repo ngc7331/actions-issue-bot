@@ -1,23 +1,25 @@
-name: The name of your action here
-description: Provide a description here
-author: Your name or organization here
+name: Issue Bot
+description:
+  Automate replies, labels, assignments, and closing issues based on YAML rules.
+author: ngc7331
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
   icon: heart
   color: red
 
-# Define your inputs here.
 inputs:
-  milliseconds:
-    description: Your input description here
-    required: true
-    default: '1000'
+  config:
+    description: Path to the YAML config file containing issue bot rules.
+    required: false
+    default: .github/issue-bot.yaml
+  token:
+    description:
+      GitHub token with issues:write permission (defaults to GITHUB_TOKEN if not
+      provided).
+    required: false
 
-# Define your outputs here.
-outputs:
-  time:
-    description: Your output description here
+outputs: {}
 
 runs:
   using: node24

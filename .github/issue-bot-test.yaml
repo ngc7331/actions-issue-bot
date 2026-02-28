@@ -1,6 +1,7 @@
 rules:
   incomplete_attachment:
     condition:
+      - regex_title: '[TEST]'
       - or:
           - regex: '<!-- Uploading .*? -->'
           - regex: '<!-- Failed to upload .*? -->'
@@ -17,6 +18,7 @@ rules:
 
   resolve:
     condition:
+      - regex_title: '[TEST]'
       - regex: "\/resolve"
       - member: only
     action:
@@ -24,3 +26,14 @@ rules:
         remove: 'more info needed'
       state:
         reason: completed
+
+  unresolve:
+    condition:
+      - regex_title: '[TEST]'
+      - regex: "\/unresolve"
+      - member: only
+    action:
+      label:
+        add: 're-opened'
+      state:
+        reason: reopened

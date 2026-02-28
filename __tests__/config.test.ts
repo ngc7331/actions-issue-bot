@@ -30,7 +30,7 @@ describe('config.parseConfig', () => {
       'Hello {{ issue.author }}'
     )
     expect(
-      (config.rules.greeting as Record<string, unknown>).ignored
+      (config.rules.greeting as unknown as Record<string, unknown>).ignored
     ).toBeUndefined()
   })
 
@@ -67,6 +67,72 @@ describe('config.parseConfig', () => {
 
     await expect(parseConfig(filePath)).rejects.toThrow(
       'Configuration file is empty or invalid'
+    )
+  })
+
+  it('throws on invalid event_type value', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'issue-bot-'))
+    const filePath = path.join(tmpDir, 'config.yaml')
+
+    await writeFile(
+      filePath,
+      [
+        'global:',
+        '  - event_type: wrong',
+        'rules:',
+        '  noop:',
+        '    action:',
+        '      comment:',
+        "        message: 'hi'"
+      ].join('\n')
+    )
+
+    await expect(parseConfig(filePath)).rejects.toThrow(
+      'Invalid event_type value "wrong"'
+    )
+  })
+
+  it('throws on invalid state value', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'issue-bot-'))
+    const filePath = path.join(tmpDir, 'config.yaml')
+
+    await writeFile(
+      filePath,
+      [
+        'rules:',
+        '  close_if_needed:',
+        '    condition:',
+        '      - state: pending',
+        '    action:',
+        '      state:',
+        '        reason: completed'
+      ].join('\n')
+    )
+
+    await expect(parseConfig(filePath)).rejects.toThrow(
+      'Invalid state value "pending"'
+    )
+  })
+
+  it('throws on invalid member value', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'issue-bot-'))
+    const filePath = path.join(tmpDir, 'config.yaml')
+
+    await writeFile(
+      filePath,
+      [
+        'rules:',
+        '  triage:',
+        '    condition:',
+        '      - member: sometimes',
+        '    action:',
+        '      comment:',
+        "        message: 'hi'"
+      ].join('\n')
+    )
+
+    await expect(parseConfig(filePath)).rejects.toThrow(
+      'Invalid member value "sometimes"'
     )
   })
 })

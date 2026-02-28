@@ -2,8 +2,8 @@ import { ConditionGroup } from '../condition/types.js'
 import { Action } from '../action/types.js'
 
 export interface RuleConfig {
-  condition?: ConditionGroup
-  action?: Action
+  condition: ConditionGroup
+  action: Action
 }
 
 export interface ConfigFile {

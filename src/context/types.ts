@@ -2,8 +2,15 @@ import type { getOctokit } from '@actions/github'
 
 export type GitHubClient = ReturnType<typeof getOctokit>
 
-export type ContextEvent = 'issues' | 'issue_comment' | 'pull_request'
-export type ContextState = 'open' | 'closed'
+export const CONTEXT_EVENTS = [
+  'issues',
+  'issue_comment',
+  'pull_request'
+] as const
+export type ContextEvent = (typeof CONTEXT_EVENTS)[number]
+
+export const CONTEXT_STATES = ['open', 'closed'] as const
+export type ContextState = (typeof CONTEXT_STATES)[number]
 
 export interface Context {
   owner: string

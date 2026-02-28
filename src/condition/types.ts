@@ -27,7 +27,8 @@ export interface StateCondition {
   state: ContextState
 }
 
-export type MemberMode = 'include' | 'exclude' | 'only'
+export const MEMBER_MODES = ['include', 'exclude', 'only'] as const
+export type MemberMode = (typeof MEMBER_MODES)[number]
 
 export interface MemberCondition {
   member: MemberMode

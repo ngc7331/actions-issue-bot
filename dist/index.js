@@ -56499,6 +56499,9 @@ function getContext() {
         : event === 'pull_request'
             ? (githubExports.context.payload.pull_request?.author_association ?? '')
             : (githubExports.context.payload.issue?.author_association ?? '');
+    const state = event === 'pull_request'
+        ? (githubExports.context.payload.pull_request?.state ?? 'open')
+        : (githubExports.context.payload.issue?.state ?? 'open');
     return {
         owner,
         repo,
@@ -56506,6 +56509,7 @@ function getContext() {
         issue_number,
         title,
         body,
+        state,
         issue_author,
         comment_author,
         author_association
@@ -64004,7 +64008,7 @@ function normalizeStringList(input, unique = false) {
         : list.filter(Boolean);
 }
 
-function evaluate$5(condition, ctx) {
+function evaluate$6(condition, ctx) {
     const pattern = new RegExp(condition.regex);
     const body = ctx.body;
     const result = pattern.test(body);
@@ -64012,7 +64016,7 @@ function evaluate$5(condition, ctx) {
     return result;
 }
 
-function evaluate$4(condition, ctx) {
+function evaluate$5(condition, ctx) {
     const pattern = new RegExp(condition.regex_title);
     const title = ctx.title;
     const matched = pattern.test(title);
@@ -64020,11 +64024,19 @@ function evaluate$4(condition, ctx) {
     return matched;
 }
 
-function evaluate$3(condition, ctx) {
+function evaluate$4(condition, ctx) {
     const actual = ctx.event;
     const expected = condition.event_type;
     const matched = actual === expected;
     debug(`[condition:event_type] expected=${expected} actual=${actual} matched=${matched}`);
+    return matched;
+}
+
+function evaluate$3(condition, ctx) {
+    const actual = ctx.state;
+    const expected = condition.state;
+    const matched = actual === expected;
+    debug(`[condition:state] expected=${expected} actual=${actual} matched=${matched}`);
     return matched;
 }
 
@@ -64061,12 +64073,15 @@ function evaluateConditions(conditions, ctx) {
 }
 function evaluateCondition(condition, ctx) {
     if ('regex' in condition) {
-        return evaluate$5(condition, ctx);
+        return evaluate$6(condition, ctx);
     }
     if ('regex_title' in condition) {
-        return evaluate$4(condition, ctx);
+        return evaluate$5(condition, ctx);
     }
     if ('event_type' in condition) {
+        return evaluate$4(condition, ctx);
+    }
+    if ('state' in condition) {
         return evaluate$3(condition, ctx);
     }
     if ('member' in condition) {

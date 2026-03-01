@@ -175,6 +175,25 @@ At least one condition in the list must be satisfied.
 This rule matches comments that either contain "bug", "error", or "fail", or are
 made by repository members.
 
+#### condition-`not`
+
+The condition in the list must not be satisfied.
+
+```yaml
+- not:
+  regex: 'bug|error|fail'
+```
+
+This rule matches comments that do not contain "bug", "error", or "fail".
+
+Note that `not` should not be used with `member` condition, as it can lead to
+ambiguous logic. For example, `not: member: include` does NOT mean
+`member: exclude`, but rather matches nothing, since the condition
+`member: include` is satisfied for all comments (including those from members
+and non-members).
+
+Used with `regex` or `regex_title` is the only recommended usage of `not`.
+
 ### Action Types
 
 #### action-`comment`

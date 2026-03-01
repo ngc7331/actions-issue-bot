@@ -8,6 +8,7 @@ import { evaluate as evaluateState } from './state.js'
 import { evaluate as evaluateMember } from './member.js'
 import { evaluate as evaluateAnd } from './and.js'
 import { evaluate as evaluateOr } from './or.js'
+import { evaluate as evaluateNot } from './not.js'
 
 export function evaluateConditions(
   conditions: ConditionGroup,
@@ -44,6 +45,10 @@ function evaluateCondition(condition: Condition, ctx: Context): boolean {
 
   if ('or' in condition) {
     return evaluateOr(condition, ctx, evaluateCondition)
+  }
+
+  if ('not' in condition) {
+    return evaluateNot(condition, ctx, evaluateCondition)
   }
 
   return false

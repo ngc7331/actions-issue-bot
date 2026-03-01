@@ -11,6 +11,7 @@ import type {
   MemberCondition,
   MemberMode,
   OrCondition,
+  NotCondition,
   RegexCondition,
   RegexTitleCondition,
   StateCondition
@@ -154,6 +155,23 @@ function validateConditionGroup(
           key
         ] as ConditionGroup
         validateConditionGroup(`${name}.${key}`, nested)
+        break
+      }
+      case 'not': {
+        const nested = (condition as NotCondition).not as Condition
+
+        if (!nested || typeof nested !== 'object') {
+          throw new Error(`not condition in "${name}" must be an object.`)
+        }
+
+        const nestedKeys = Object.keys(nested)
+        if (nestedKeys.length !== 1) {
+          throw new Error(
+            `not condition in "${name}" must wrap exactly one condition; received: ${nestedKeys.join(', ') || 'none'}.`
+          )
+        }
+
+        validateConditionGroup(`${name}.not`, [nested])
         break
       }
       default:

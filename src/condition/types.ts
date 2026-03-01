@@ -8,6 +8,7 @@ export type Condition =
   | MemberCondition
   | AndCondition
   | OrCondition
+  | NotCondition
 
 export type ConditionGroup = Condition[]
 
@@ -40,4 +41,8 @@ export interface AndCondition {
 
 export interface OrCondition {
   or: ConditionGroup
+}
+
+export interface NotCondition {
+  not: Condition
 }

@@ -1,12 +1,13 @@
-name: Issue Bot
+name: ngc7331's Issue Bot
 description:
-  Automate replies, labels, assignments, and closing issues based on YAML rules.
+  Automate comments, labels, assignments, and closing issues based on YAML
+  rules.
 author: ngc7331
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
-  icon: heart
-  color: red
+  icon: user-check
+  color: white
 
 inputs:
   config:

@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "author": "ngc7331",
   "type": "module",
-  "private": true,
   "homepage": "https://github.com/ngc7331/actions-issue-bot",
   "repository": {
     "type": "git",

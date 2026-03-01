@@ -191,6 +191,31 @@ comment:
   message: 'Hello world {{ issue.author }}'
 ```
 
+#### action-`react`
+
+NOTE: **Experimental, use with caution**
+
+Adds the specified reaction to the comment or issue.
+
+You can specify reactions to add with `add`, reactions to remove with `remove`,
+or remove all reactions (before adding new) with `remove_all`.
+
+`add` and `remove` fields can be a single string or a list of strings.
+
+Supported reactions are `+1`, `-1`, `laugh`, `confused`, `heart`, `hooray`,
+`rocket`, and `eyes`. Refer to
+[GitHub API documentation](https://docs.github.com/rest/reactions/reactions) for
+details.
+
+Example:
+
+```yaml
+react:
+  add: 'rocket'
+  remove: 'eyes'
+  remove_all: false
+```
+
 #### action-`label`
 
 Adds or removes labels from the issue.

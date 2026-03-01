@@ -34,4 +34,31 @@ export interface StateAction {
   state?: StateActionConfig
 }
 
-export type Action = CommentAction & LabelAction & AssignAction & StateAction
+export const REACTION_CONTENTS = [
+  '+1',
+  '-1',
+  'laugh',
+  'confused',
+  'heart',
+  'hooray',
+  'rocket',
+  'eyes'
+] as const
+
+export type ReactionContent = (typeof REACTION_CONTENTS)[number]
+
+export interface ReactActionConfig {
+  add?: ReactionContent | ReactionContent[]
+  remove?: ReactionContent | ReactionContent[]
+  remove_all?: boolean
+}
+
+export interface ReactAction {
+  react?: ReactActionConfig
+}
+
+export type Action = CommentAction &
+  LabelAction &
+  AssignAction &
+  StateAction &
+  ReactAction

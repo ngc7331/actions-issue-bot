@@ -16,7 +16,7 @@ and assignments based on YAML rules.
 ## Basic Usage
 
 1. Add a workflow that runs on issue and issue_comment events.
-2. Create the YAML configuration file (default path shown above) to define
+1. Create the YAML configuration file (default path shown above) to define
    matching rules and actions.
 
 Example workflow file `.github/workflows/issue-bot.yml`:
@@ -89,7 +89,7 @@ matching. It shares the same format as the `condition` block in rules.
 
 ### Condition Types
 
-#### `regex`
+#### condition-`regex`
 
 Matches the specified regular expression against issue body (when issue is
 opened, edited or reopened), or comment (when comment is added to an issue).
@@ -100,7 +100,7 @@ Example:
 - regex: 'bug|error|fail'
 ```
 
-#### `regex_title`
+#### condition-`regex_title`
 
 Matches the specified regular expression against issue title.
 
@@ -110,7 +110,7 @@ Example:
 - regex_title: 'bug|error|fail'
 ```
 
-#### `member`
+#### condition-`member`
 
 Should bot consider comments from repository members. Possible values:
 
@@ -127,7 +127,7 @@ Example:
 - member: exclude
 ```
 
-#### `event_type`
+#### condition-`event_type`
 
 Matches the event type. Possible values are `issues`, `issue_comment` and
 `pull_request`. This condition is useful when you want to trigger actions only
@@ -139,7 +139,7 @@ Example:
 - event_type: issues
 ```
 
-#### `state`
+#### condition-`state`
 
 Matches the state of the issue. Possible values are `open` and `closed`.
 
@@ -149,7 +149,7 @@ Example:
 - state: open
 ```
 
-#### `and`
+#### condition-`and`
 
 All conditions in the list must be satisfied.
 
@@ -162,7 +162,7 @@ All conditions in the list must be satisfied.
 This rule matches comments that contain "bug", "error", or "fail", but only if
 the comment author is not a repository member.
 
-#### `or`
+#### condition-`or`
 
 At least one condition in the list must be satisfied.
 
@@ -177,7 +177,7 @@ made by repository members.
 
 ### Action Types
 
-#### `comment`
+#### action-`comment`
 
 Comments on the issue or comment with the specified text.
 
@@ -191,7 +191,7 @@ comment:
   message: 'Hello world {{ issue.author }}'
 ```
 
-#### `label`
+#### action-`label`
 
 Adds or removes labels from the issue.
 
@@ -209,7 +209,7 @@ label:
   remove_all: false
 ```
 
-#### `state`
+#### action-`state`
 
 Closes, or reopens the issue with the given reason. Supported reasons are
 `completed`, `not_planned`, and `reopened` (Refer to
@@ -223,7 +223,7 @@ state:
   reason: completed
 ```
 
-#### `assign`
+#### action-`assign`
 
 Assigns the issue to the specified users. You can specify users to add with
 `add`, users to remove with `remove`, or remove all assignees (before adding
@@ -246,11 +246,11 @@ assign:
 
 ### Template Variables
 
-#### `issue.author`
+#### variable-`issue.author`
 
 The username of the issue author.
 
-#### `comment.author`
+#### variable-`comment.author`
 
 The username of the comment (when comment is added to an issue) / issue (when
 issue is opened, edited or reopened) author.

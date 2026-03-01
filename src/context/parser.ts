@@ -1,71 +1,81 @@
 import { context } from '@actions/github'
 
-import type { Context, GitHubIssueApiContext } from './types.js'
+import type {
+  Context,
+  GitHubClient,
+  GitHubIssueApiContext,
+  GitHubIssueCommentApiContext
+} from './types.js'
 
-export function getContext(): Context {
+export async function getContext(octokit: GitHubClient): Promise<Context> {
+  // get bot login from api
+  const bot_id = await octokit.rest.users
+    .getAuthenticated()
+    .then((res) => res.data.id)
+
   const owner = context.repo.owner
   const repo = context.repo.repo
 
-  if (
-    context.eventName !== 'issues' &&
-    context.eventName !== 'issue_comment' &&
-    context.eventName !== 'pull_request'
-  ) {
-    throw new Error(
-      `Unexpected event: ${context.eventName}, this action only supports issues, issue_comment, and pull_request events.`
-    )
-  }
+  let issue_number: number | undefined
+  let title: string | undefined
+  let body: string | undefined
+  let issue_author: string | undefined
+  let comment_author: string | undefined
+  let author_association: string | undefined
+  let comment_id: number | undefined
+  let state: string | undefined
 
+  switch (context.eventName) {
+    case 'issues':
+      issue_number = context.payload.issue?.number
+      title = context.payload.issue?.title
+      body = context.payload.issue?.body
+      issue_author = context.payload.issue?.user?.login
+      author_association = context.payload.issue?.author_association
+      state = context.payload.issue?.state
+      break
+    case 'issue_comment':
+      issue_number = context.payload.issue?.number
+      title = context.payload.issue?.title
+      body = context.payload.comment?.body
+      issue_author = context.payload.issue?.user?.login
+      comment_author = context.payload.comment?.user?.login
+      author_association = context.payload.comment?.author_association
+      comment_id = context.payload.comment?.id
+      state = context.payload.issue?.state
+      break
+    case 'pull_request':
+      issue_number = context.payload.pull_request?.number
+      title = context.payload.pull_request?.title
+      body = context.payload.pull_request?.body
+      issue_author = context.payload.pull_request?.user?.login
+      author_association = context.payload.pull_request?.author_association
+      state = context.payload.pull_request?.state
+      break
+    default:
+      throw new Error(
+        `Unexpected event: ${context.eventName}, this action only supports issues, issue_comment, and pull_request events.`
+      )
+  }
   const event = context.eventName
 
-  const issue_number =
-    event === 'pull_request'
-      ? context.payload.pull_request?.number
-      : context.payload.issue?.number
   if (!issue_number) {
     throw new Error('Context missing issue or pull request number')
   }
 
-  const title =
-    event === 'pull_request'
-      ? (context.payload.pull_request?.title ?? '')
-      : (context.payload.issue?.title ?? '')
-  const body =
-    event === 'pull_request'
-      ? (context.payload.pull_request?.body ?? '')
-      : event === 'issue_comment'
-        ? (context.payload.comment?.body ?? '')
-        : (context.payload.issue?.body ?? '')
-  const issue_author =
-    event === 'pull_request'
-      ? (context.payload.pull_request?.user?.login ?? '')
-      : (context.payload.issue?.user?.login ?? '')
-  const comment_author =
-    event === 'issue_comment'
-      ? (context.payload.comment?.user?.login ?? '')
-      : undefined
-  const author_association =
-    event === 'issue_comment'
-      ? (context.payload.comment?.author_association ?? '')
-      : event === 'pull_request'
-        ? (context.payload.pull_request?.author_association ?? '')
-        : (context.payload.issue?.author_association ?? '')
-  const state =
-    event === 'pull_request'
-      ? ((context.payload.pull_request?.state as Context['state']) ?? 'open')
-      : ((context.payload.issue?.state as Context['state']) ?? 'open')
-
   return {
+    bot_id,
     owner,
     repo,
     event,
     issue_number,
-    title,
-    body,
-    state,
-    issue_author,
-    comment_author,
-    author_association
+    comment_id,
+    title: title ?? '',
+    body: body ?? '',
+    state: (state as Context['state']) ?? 'open',
+    issue_author: issue_author ?? '',
+    comment_author: comment_author ?? '',
+    author_association: author_association ?? ''
   }
 }
 
@@ -74,5 +84,18 @@ export function getIssueApiContext(ctx: Context): GitHubIssueApiContext {
     owner: ctx.owner,
     repo: ctx.repo,
     issue_number: ctx.issue_number
+  }
+}
+
+export function getIssueCommentApiContext(
+  ctx: Context
+): GitHubIssueCommentApiContext {
+  if (!ctx.comment_id) {
+    throw new Error('Context missing comment_id for issue_comment event')
+  }
+  return {
+    owner: ctx.owner,
+    repo: ctx.repo,
+    comment_id: ctx.comment_id
   }
 }

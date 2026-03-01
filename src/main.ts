@@ -18,7 +18,7 @@ export async function run(): Promise<void> {
 
     const octokit = getOctokit(token)
     const config = await parseConfig(configPath)
-    const context = getContext()
+    const context = await getContext(octokit)
 
     core.info(`#${context.issue_number} event: ${context.event}`)
 

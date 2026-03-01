@@ -13,10 +13,12 @@ export const CONTEXT_STATES = ['open', 'closed'] as const
 export type ContextState = (typeof CONTEXT_STATES)[number]
 
 export interface Context {
+  bot_id: number
   owner: string
   repo: string
   event: ContextEvent
   issue_number: number // despite the name, this can be a pull request number as well since GitHub treats PRs as issues
+  comment_id?: number
   title: string
   body: string
   state: ContextState
@@ -29,4 +31,10 @@ export interface GitHubIssueApiContext {
   owner: string
   repo: string
   issue_number: number
+}
+
+export interface GitHubIssueCommentApiContext {
+  owner: string
+  repo: string
+  comment_id: number
 }

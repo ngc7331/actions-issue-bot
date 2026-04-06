@@ -43,6 +43,11 @@ export function createOctokitMock(): GitHubClient {
         .mockResolvedValue(undefined),
       addAssignees: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
       update: jest.fn<() => Promise<void>>().mockResolvedValue(undefined)
+    },
+    users: {
+      getAuthenticated: jest
+        .fn<() => Promise<{ data: { id: number } }>>()
+        .mockResolvedValue({ data: { id: 12345 } })
     }
   }
 

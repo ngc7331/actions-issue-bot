@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals'
+import { createOctokitMock } from '../__fixtures__/github.js'
 
 type MockContext = {
   repo: { owner: string; repo: string }
@@ -13,8 +14,7 @@ const mockContext: MockContext = {
 }
 
 jest.unstable_mockModule('@actions/github', () => ({
-  context: mockContext,
-  getOctokit: jest.fn()
+  context: mockContext
 }))
 
 const { getContext, getIssueApiContext } =
@@ -27,7 +27,7 @@ describe('context parser', () => {
     mockContext.payload = {}
   })
 
-  it('parses issues events', () => {
+  it('parses issues events', async () => {
     mockContext.payload = {
       issue: {
         number: 42,
@@ -39,23 +39,26 @@ describe('context parser', () => {
       }
     }
 
-    const ctx = getContext()
+    const octokit = createOctokitMock()
+    const ctx = await getContext(octokit)
 
     expect(ctx).toEqual({
+      bot_id: 12345,
       owner: 'octo',
       repo: 'hello',
       event: 'issues',
       issue_number: 42,
+      comment_id: undefined,
       title: 'Bug report',
       body: 'Fails on startup',
       state: 'open',
       issue_author: 'alice',
-      comment_author: undefined,
+      comment_author: '',
       author_association: 'MEMBER'
     })
   })
 
-  it('uses comment body for issue_comment events', () => {
+  it('uses comment body for issue_comment events', async () => {
     mockContext.eventName = 'issue_comment'
     mockContext.payload = {
       issue: {
@@ -73,7 +76,8 @@ describe('context parser', () => {
       }
     }
 
-    const ctx = getContext()
+    const octokit = createOctokitMock()
+    const ctx = await getContext(octokit)
 
     expect(ctx.body).toBe('Comment body wins')
     expect(ctx.comment_author).toBe('bob')
@@ -81,7 +85,7 @@ describe('context parser', () => {
     expect(ctx.state).toBe('open')
   })
 
-  it('parses pull_request events', () => {
+  it('parses pull_request events', async () => {
     mockContext.eventName = 'pull_request'
     mockContext.payload = {
       pull_request: {
@@ -94,33 +98,36 @@ describe('context parser', () => {
       }
     }
 
-    const ctx = getContext()
+    const octokit = createOctokitMock()
+    const ctx = await getContext(octokit)
 
     expect(ctx.event).toBe('pull_request')
     expect(ctx.body).toBe('PR body')
     expect(ctx.state).toBe('closed')
     expect(ctx.issue_author).toBe('carol')
     expect(ctx.author_association).toBe('CONTRIBUTOR')
-    expect(ctx.comment_author).toBeUndefined()
+    expect(ctx.comment_author).toBe('')
   })
 
-  it('throws on unsupported events', () => {
+  it('throws on unsupported events', async () => {
     mockContext.eventName = 'push'
     mockContext.payload = {}
 
-    expect(() => getContext()).toThrow('Unexpected event: push')
+    const octokit = createOctokitMock()
+    await expect(getContext(octokit)).rejects.toThrow('Unexpected event: push')
   })
 
-  it('throws when issue number is missing', () => {
+  it('throws when issue number is missing', async () => {
     mockContext.eventName = 'issues'
     mockContext.payload = { issue: { title: 'No number' } }
 
-    expect(() => getContext()).toThrow(
+    const octokit = createOctokitMock()
+    await expect(getContext(octokit)).rejects.toThrow(
       'Context missing issue or pull request number'
     )
   })
 
-  it('creates issue api context mapping', () => {
+  it('creates issue api context mapping', async () => {
     mockContext.payload = {
       issue: {
         number: 99,
@@ -131,7 +138,8 @@ describe('context parser', () => {
       }
     }
 
-    const ctx = getContext()
+    const octokit = createOctokitMock()
+    const ctx = await getContext(octokit)
     const apiCtx = getIssueApiContext(ctx)
 
     expect(apiCtx).toEqual({ owner: 'octo', repo: 'hello', issue_number: 99 })

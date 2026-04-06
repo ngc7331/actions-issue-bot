@@ -33267,54 +33267,68 @@ function getOctokit(token, options, ...additionalPlugins) {
     return new GitHubWithPlugins(getOctokitOptions(token));
 }
 
-function getContext() {
+async function getContext(octokit) {
+    // get bot login from api
+    const bot_id = await octokit.rest.users
+        .getAuthenticated()
+        .then((res) => res.data.id);
     const owner = context.repo.owner;
     const repo = context.repo.repo;
-    if (context.eventName !== 'issues' &&
-        context.eventName !== 'issue_comment' &&
-        context.eventName !== 'pull_request') {
-        throw new Error(`Unexpected event: ${context.eventName}, this action only supports issues, issue_comment, and pull_request events.`);
+    let issue_number;
+    let title;
+    let body;
+    let issue_author;
+    let comment_author;
+    let author_association;
+    let comment_id;
+    let state;
+    switch (context.eventName) {
+        case 'issues':
+            issue_number = context.payload.issue?.number;
+            title = context.payload.issue?.title;
+            body = context.payload.issue?.body;
+            issue_author = context.payload.issue?.user?.login;
+            author_association = context.payload.issue?.author_association;
+            state = context.payload.issue?.state;
+            break;
+        case 'issue_comment':
+            issue_number = context.payload.issue?.number;
+            title = context.payload.issue?.title;
+            body = context.payload.comment?.body;
+            issue_author = context.payload.issue?.user?.login;
+            comment_author = context.payload.comment?.user?.login;
+            author_association = context.payload.comment?.author_association;
+            comment_id = context.payload.comment?.id;
+            state = context.payload.issue?.state;
+            break;
+        case 'pull_request':
+            issue_number = context.payload.pull_request?.number;
+            title = context.payload.pull_request?.title;
+            body = context.payload.pull_request?.body;
+            issue_author = context.payload.pull_request?.user?.login;
+            author_association = context.payload.pull_request?.author_association;
+            state = context.payload.pull_request?.state;
+            break;
+        default:
+            throw new Error(`Unexpected event: ${context.eventName}, this action only supports issues, issue_comment, and pull_request events.`);
     }
     const event = context.eventName;
-    const issue_number = event === 'pull_request'
-        ? context.payload.pull_request?.number
-        : context.payload.issue?.number;
     if (!issue_number) {
         throw new Error('Context missing issue or pull request number');
     }
-    const title = event === 'pull_request'
-        ? (context.payload.pull_request?.title ?? '')
-        : (context.payload.issue?.title ?? '');
-    const body = event === 'pull_request'
-        ? (context.payload.pull_request?.body ?? '')
-        : event === 'issue_comment'
-            ? (context.payload.comment?.body ?? '')
-            : (context.payload.issue?.body ?? '');
-    const issue_author = event === 'pull_request'
-        ? (context.payload.pull_request?.user?.login ?? '')
-        : (context.payload.issue?.user?.login ?? '');
-    const comment_author = event === 'issue_comment'
-        ? (context.payload.comment?.user?.login ?? '')
-        : undefined;
-    const author_association = event === 'issue_comment'
-        ? (context.payload.comment?.author_association ?? '')
-        : event === 'pull_request'
-            ? (context.payload.pull_request?.author_association ?? '')
-            : (context.payload.issue?.author_association ?? '');
-    const state = event === 'pull_request'
-        ? (context.payload.pull_request?.state ?? 'open')
-        : (context.payload.issue?.state ?? 'open');
     return {
+        bot_id,
         owner,
         repo,
         event,
         issue_number,
-        title,
-        body,
-        state,
-        issue_author,
-        comment_author,
-        author_association
+        comment_id,
+        title: title ?? '',
+        body: body ?? '',
+        state: state ?? 'open',
+        issue_author: issue_author ?? '',
+        comment_author: comment_author ?? '',
+        author_association: author_association ?? ''
     };
 }
 function getIssueApiContext(ctx) {
@@ -33322,6 +33336,16 @@ function getIssueApiContext(ctx) {
         owner: ctx.owner,
         repo: ctx.repo,
         issue_number: ctx.issue_number
+    };
+}
+function getIssueCommentApiContext(ctx) {
+    if (!ctx.comment_id) {
+        throw new Error('Context missing comment_id for issue_comment event');
+    }
+    return {
+        owner: ctx.owner,
+        repo: ctx.repo,
+        comment_id: ctx.comment_id
     };
 }
 
@@ -34814,6 +34838,7 @@ function createStringifyContext(doc, options) {
         nullStr: 'null',
         simpleKeys: false,
         singleQuote: null,
+        trailingComma: false,
         trueStr: 'true',
         verifyAliasOrder: true
     }, doc.schema.toStringOptions, options);
@@ -35315,12 +35340,22 @@ function stringifyFlowCollection({ items }, ctx, { flowChars, itemIndent }) {
         if (comment)
             reqNewline = true;
         let str = stringify$2(item, itemCtx, () => (comment = null));
-        if (i < items.length - 1)
+        reqNewline || (reqNewline = lines.length > linesAtValue || str.includes('\n'));
+        if (i < items.length - 1) {
             str += ',';
+        }
+        else if (ctx.options.trailingComma) {
+            if (ctx.options.lineWidth > 0) {
+                reqNewline || (reqNewline = lines.reduce((sum, line) => sum + line.length + 2, 2) +
+                    (str.length + 2) >
+                    ctx.options.lineWidth);
+            }
+            if (reqNewline) {
+                str += ',';
+            }
+        }
         if (comment)
             str += lineComment(str, itemIndent, commentString(comment));
-        if (!reqNewline && (lines.length > linesAtValue || str.includes('\n')))
-            reqNewline = true;
         lines.push(str);
         linesAtValue = lines.length;
     }
@@ -38134,19 +38169,26 @@ function composeNode(ctx, token, props, onError) {
         case 'block-map':
         case 'block-seq':
         case 'flow-collection':
-            node = composeCollection(CN, ctx, token, props, onError);
-            if (anchor)
-                node.anchor = anchor.source.substring(1);
+            try {
+                node = composeCollection(CN, ctx, token, props, onError);
+                if (anchor)
+                    node.anchor = anchor.source.substring(1);
+            }
+            catch (error) {
+                // Almost certainly here due to a stack overflow
+                const message = error instanceof Error ? error.message : String(error);
+                onError(token, 'RESOURCE_EXHAUSTION', message);
+            }
             break;
         default: {
             const message = token.type === 'error'
                 ? token.message
                 : `Unsupported token (type: ${token.type})`;
             onError(token, 'UNEXPECTED_TOKEN', message);
-            node = composeEmptyNode(ctx, token.offset, undefined, null, props, onError);
             isSrcToken = false;
         }
     }
+    node ?? (node = composeEmptyNode(ctx, token.offset, undefined, null, props, onError));
     if (anchor && node.anchor === '')
         onError(anchor, 'BAD_ALIAS', 'Anchor cannot be an empty string');
     if (atKey &&
@@ -40879,6 +40921,18 @@ function validateConditionGroup(name, conditions) {
                 validateConditionGroup(`${name}.${key}`, nested);
                 break;
             }
+            case 'not': {
+                const nested = condition.not;
+                if (!nested || typeof nested !== 'object') {
+                    throw new Error(`not condition in "${name}" must be an object.`);
+                }
+                const nestedKeys = Object.keys(nested);
+                if (nestedKeys.length !== 1) {
+                    throw new Error(`not condition in "${name}" must wrap exactly one condition; received: ${nestedKeys.join(', ') || 'none'}.`);
+                }
+                validateConditionGroup(`${name}.not`, [nested]);
+                break;
+            }
             default:
                 throw new Error(`Unknown condition key "${key}" in ${name}.`);
         }
@@ -40897,7 +40951,7 @@ function normalizeStringList(input, unique = false) {
         : list.filter(Boolean);
 }
 
-function evaluate$6(condition, ctx) {
+function evaluate$7(condition, ctx) {
     const pattern = new RegExp(condition.regex);
     const body = ctx.body;
     const result = pattern.test(body);
@@ -40905,7 +40959,7 @@ function evaluate$6(condition, ctx) {
     return result;
 }
 
-function evaluate$5(condition, ctx) {
+function evaluate$6(condition, ctx) {
     const pattern = new RegExp(condition.regex_title);
     const title = ctx.title;
     const matched = pattern.test(title);
@@ -40913,7 +40967,7 @@ function evaluate$5(condition, ctx) {
     return matched;
 }
 
-function evaluate$4(condition, ctx) {
+function evaluate$5(condition, ctx) {
     const actual = ctx.event;
     const expected = condition.event_type;
     const matched = actual === expected;
@@ -40921,7 +40975,7 @@ function evaluate$4(condition, ctx) {
     return matched;
 }
 
-function evaluate$3(condition, ctx) {
+function evaluate$4(condition, ctx) {
     const actual = ctx.state;
     const expected = condition.state;
     const matched = actual === expected;
@@ -40929,7 +40983,7 @@ function evaluate$3(condition, ctx) {
     return matched;
 }
 
-function evaluate$2(condition, ctx) {
+function evaluate$3(condition, ctx) {
     const authorAssociation = (ctx.author_association ?? '').toUpperCase();
     const isMember = ['MEMBER', 'OWNER', 'COLLABORATOR'].includes(authorAssociation);
     const result = condition.member === 'include'
@@ -40943,16 +40997,22 @@ function evaluate$2(condition, ctx) {
     return result;
 }
 
-function evaluate$1(condition, ctx, evaluator) {
+function evaluate$2(condition, ctx, evaluator) {
     const result = condition.and.every((entry) => evaluator(entry, ctx));
     debug(`[condition:and] count=${condition.and.length} matched=${result}`);
     return result;
 }
 
-function evaluate(condition, ctx, evaluator) {
+function evaluate$1(condition, ctx, evaluator) {
     const result = condition.or.some((entry) => evaluator(entry, ctx));
     debug(`[condition:or] count=${condition.or.length} matched=${result}`);
     return result;
+}
+
+function evaluate(condition, ctx, evaluateCondition) {
+    const matched = !evaluateCondition(condition.not, ctx);
+    debug(`[condition:not] matched=${matched}`);
+    return matched;
 }
 
 function evaluateConditions(conditions, ctx) {
@@ -40962,24 +41022,27 @@ function evaluateConditions(conditions, ctx) {
 }
 function evaluateCondition(condition, ctx) {
     if ('regex' in condition) {
-        return evaluate$6(condition, ctx);
+        return evaluate$7(condition, ctx);
     }
     if ('regex_title' in condition) {
-        return evaluate$5(condition, ctx);
+        return evaluate$6(condition, ctx);
     }
     if ('event_type' in condition) {
-        return evaluate$4(condition, ctx);
+        return evaluate$5(condition, ctx);
     }
     if ('state' in condition) {
-        return evaluate$3(condition, ctx);
+        return evaluate$4(condition, ctx);
     }
     if ('member' in condition) {
-        return evaluate$2(condition, ctx);
+        return evaluate$3(condition, ctx);
     }
     if ('and' in condition) {
-        return evaluate$1(condition, ctx, evaluateCondition);
+        return evaluate$2(condition, ctx, evaluateCondition);
     }
     if ('or' in condition) {
+        return evaluate$1(condition, ctx, evaluateCondition);
+    }
+    if ('not' in condition) {
         return evaluate(condition, ctx, evaluateCondition);
     }
     return false;
@@ -40990,7 +41053,7 @@ function applyTemplate(template, issueAuthor, commentAuthor) {
         .replaceAll('{{ issue.author }}', issueAuthor ?? '')
         .replaceAll('{{ comment.author }}', (commentAuthor || issueAuthor) ?? '');
 }
-async function run$4(octokit, ctx, config) {
+async function run$5(octokit, ctx, config) {
     const apiCtx = getIssueApiContext(ctx);
     const message = config.message;
     const body = applyTemplate(message, ctx.issue_author, ctx.comment_author);
@@ -41001,7 +41064,7 @@ async function run$4(octokit, ctx, config) {
     });
 }
 
-async function run$3(octokit, ctx, action) {
+async function run$4(octokit, ctx, action) {
     if (!action)
         return;
     const addList = normalizeStringList(action.add);
@@ -41031,7 +41094,7 @@ async function run$3(octokit, ctx, action) {
     }
 }
 
-async function run$2(octokit, ctx, action) {
+async function run$3(octokit, ctx, action) {
     if (!action)
         return;
     const apiCtx = getIssueApiContext(ctx);
@@ -41067,7 +41130,7 @@ async function run$2(octokit, ctx, action) {
     }
 }
 
-async function run$1(octokit, ctx, config) {
+async function run$2(octokit, ctx, config) {
     if (!config)
         return;
     const apiCtx = getIssueApiContext(ctx);
@@ -41081,19 +41144,100 @@ async function run$1(octokit, ctx, config) {
     });
 }
 
+function normalizeReactions(value) {
+    return normalizeStringList(value, true);
+}
+async function addReactions(octokit, ctx, content) {
+    if (ctx.event === 'issue_comment') {
+        const apiCtx = getIssueCommentApiContext(ctx);
+        debug(`[action:react:add] target=comment#${apiCtx.comment_id}`);
+        await octokit.rest.reactions.createForIssueComment({
+            ...apiCtx,
+            content
+        });
+    }
+    else {
+        const apiCtx = getIssueApiContext(ctx);
+        debug(`[action:react:add] target=issue#${apiCtx.issue_number}`);
+        await octokit.rest.reactions.createForIssue({
+            ...apiCtx,
+            content
+        });
+    }
+}
+async function removeReactions(octokit, ctx, content) {
+    if (ctx.event === 'issue_comment') {
+        const apiCtx = getIssueCommentApiContext(ctx);
+        const existing = await octokit.rest.reactions.listForIssueComment({
+            ...apiCtx,
+            content,
+            per_page: 100
+        });
+        for (const reaction of existing.data) {
+            if (reaction.user?.id !== ctx.bot_id) {
+                continue;
+            }
+            debug(`[action:react:remove] target=comment#${apiCtx.comment_id}.${reaction.id}`);
+            await octokit.rest.reactions.deleteForIssueComment({
+                ...apiCtx,
+                reaction_id: reaction.id
+            });
+        }
+    }
+    else {
+        const apiCtx = getIssueApiContext(ctx);
+        const existing = await octokit.rest.reactions.listForIssue({
+            ...apiCtx,
+            content,
+            per_page: 100
+        });
+        for (const reaction of existing.data) {
+            if (reaction.user?.id !== ctx.bot_id) {
+                continue;
+            }
+            debug(`[action:react:remove] target=issue#${apiCtx.issue_number}.${reaction.id}`);
+            await octokit.rest.reactions.deleteForIssue({
+                ...apiCtx,
+                reaction_id: reaction.id
+            });
+        }
+    }
+}
+async function run$1(octokit, ctx, config) {
+    if (!config)
+        return;
+    const addList = normalizeReactions(config.add);
+    const removeList = normalizeReactions(config.remove);
+    if (config.remove_all) {
+        debug('[action:react] remove all reactions');
+        await removeReactions(octokit, ctx);
+    }
+    else {
+        for (const content of removeList) {
+            await removeReactions(octokit, ctx, content);
+        }
+    }
+    for (const content of addList) {
+        await addReactions(octokit, ctx, content);
+    }
+}
+
 async function runActions(octokit, actions, ctx) {
     const tasks = [];
     if (actions.comment) {
-        tasks.push(run$4(octokit, ctx, actions.comment));
+        tasks.push(run$5(octokit, ctx, actions.comment));
     }
     if (actions.label) {
-        tasks.push(run$3(octokit, ctx, actions.label));
+        tasks.push(run$4(octokit, ctx, actions.label));
     }
     if (actions.assign) {
-        tasks.push(run$2(octokit, ctx, actions.assign));
+        tasks.push(run$3(octokit, ctx, actions.assign));
     }
     if (actions.state) {
-        tasks.push(run$1(octokit, ctx, actions.state));
+        tasks.push(run$2(octokit, ctx, actions.state));
+    }
+    if (actions.react) {
+        tasks.push(run$1(octokit, ctx, actions.react));
     }
     await Promise.all(tasks);
 }
@@ -41107,7 +41251,7 @@ async function run() {
         }
         const octokit = getOctokit(token);
         const config = await parseConfig(configPath);
-        const context = getContext();
+        const context = await getContext(octokit);
         info(`#${context.issue_number} event: ${context.event}`);
         if (!config.global) {
             info('No global conditions defined.');

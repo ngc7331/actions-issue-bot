@@ -7,11 +7,15 @@ import type {
   GitHubIssueCommentApiContext
 } from './types.js'
 
+// From https://api.github.com/users/github-actions%5Bbot%5D
+const GITHUB_ACTIONS_BOT_ID = 41898282
+
 export async function getContext(octokit: GitHubClient): Promise<Context> {
   // get bot login from api
   const bot_id = await octokit.rest.users
     .getAuthenticated()
     .then((res) => res.data.id)
+    .catch(() => GITHUB_ACTIONS_BOT_ID)
 
   const owner = context.repo.owner
   const repo = context.repo.repo

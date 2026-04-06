@@ -149,4 +149,24 @@ describe('context parser', () => {
 
     expect(apiCtx).toEqual({ owner: 'octo', repo: 'hello', issue_number: 99 })
   })
+
+  it('falls back to github-actions bot id when getAuthenticated is forbidden', async () => {
+    mockContext.payload = {
+      issue: {
+        number: 100,
+        title: 'x',
+        body: 'y',
+        user: { login: 'alice' },
+        author_association: 'MEMBER'
+      }
+    }
+
+    const octokit = createOctokitMock()
+    octokit.rest.users.getAuthenticated = jest
+      .fn<() => Promise<never>>()
+      .mockRejectedValue(new Error('Resource not accessible by integration'))
+
+    const ctx = await getContext(octokit)
+    expect(ctx.bot_id).toBe(41898282)
+  })
 })

@@ -19,6 +19,7 @@ import type {
 import { MEMBER_MODES } from '../condition/types.js'
 import type { ContextEvent, ContextState } from '../context/types.js'
 import { CONTEXT_EVENTS, CONTEXT_STATES } from '../context/types.js'
+import type { DispatchActionConfig } from '../action/types.js'
 
 export async function parseConfig(filePath: string): Promise<ConfigFile> {
   const cwd = process.cwd()
@@ -75,7 +76,83 @@ function validateConfig(config: ConfigFile): void {
     }
 
     validateConditionGroup(ruleName, rule.condition)
+    validateAction(ruleName, rule.action)
   }
+}
+
+function validateAction(ruleName: string, action: RuleConfig['action']): void {
+  if (!action.dispatch) {
+    return
+  }
+
+  validateDispatchAction(ruleName, action.dispatch)
+}
+
+function validateDispatchAction(
+  ruleName: string,
+  dispatch: DispatchActionConfig
+): void {
+  if (!dispatch || typeof dispatch !== 'object') {
+    throw new Error(`dispatch action for rule "${ruleName}" must be an object.`)
+  }
+
+  if (typeof dispatch.name !== 'string') {
+    throw new Error(`dispatch.name for rule "${ruleName}" must be a string.`)
+  }
+
+  dispatch.name = dispatch.name.trim()
+  if (!dispatch.name) {
+    throw new Error(
+      `dispatch.name for rule "${ruleName}" must be a non-empty string.`
+    )
+  }
+
+  if (dispatch.ref !== undefined && typeof dispatch.ref !== 'string') {
+    throw new Error(`dispatch.ref for rule "${ruleName}" must be a string.`)
+  }
+
+  if (dispatch.ref !== undefined) {
+    dispatch.ref = dispatch.ref.trim() || undefined
+  }
+
+  dispatch.inputs = normalizeWorkflowInputs(ruleName, dispatch.inputs)
+}
+
+function normalizeWorkflowInputs(
+  ruleName: string,
+  inputs: unknown
+): Record<string, string> | undefined {
+  if (inputs === undefined) {
+    return undefined
+  }
+
+  if (!inputs || typeof inputs !== 'object' || Array.isArray(inputs)) {
+    throw new Error(`dispatch.inputs for rule "${ruleName}" must be an object.`)
+  }
+
+  const normalized: Record<string, string> = {}
+
+  for (const [key, value] of Object.entries(inputs)) {
+    if (value === null || value === undefined) {
+      continue
+    }
+
+    if (typeof value === 'string') {
+      normalized[key] = value
+      continue
+    }
+
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      normalized[key] = String(value)
+      continue
+    }
+
+    throw new Error(
+      `dispatch.inputs.${key} for rule "${ruleName}" must be a string, number, boolean, null, or undefined.`
+    )
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined
 }
 
 const validEventTypes = new Set<ContextEvent>(CONTEXT_EVENTS)

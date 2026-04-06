@@ -57,8 +57,19 @@ export interface ReactAction {
   react?: ReactActionConfig
 }
 
+export interface DispatchActionConfig {
+  name: string
+  ref?: string
+  inputs?: Record<string, string>
+}
+
+export interface DispatchAction {
+  dispatch?: DispatchActionConfig
+}
+
 export type Action = CommentAction &
   LabelAction &
   AssignAction &
   StateAction &
-  ReactAction
+  ReactAction &
+  DispatchAction

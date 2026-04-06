@@ -3,6 +3,7 @@ import { createOctokitMock } from '../__fixtures__/github.js'
 
 type MockContext = {
   repo: { owner: string; repo: string }
+  ref?: string
   eventName: string
   payload: Record<string, unknown>
 }
@@ -24,6 +25,7 @@ describe('context parser', () => {
   beforeEach(() => {
     mockContext.repo = { owner: 'octo', repo: 'hello' }
     mockContext.eventName = 'issues'
+    mockContext.ref = 'refs/heads/main'
     mockContext.payload = {}
   })
 
@@ -46,6 +48,7 @@ describe('context parser', () => {
       bot_id: 12345,
       owner: 'octo',
       repo: 'hello',
+      ref: 'refs/heads/main',
       event: 'issues',
       issue_number: 42,
       comment_id: undefined,
@@ -93,6 +96,7 @@ describe('context parser', () => {
         title: 'PR title',
         body: 'PR body',
         state: 'closed',
+        head: { ref: 'feature-branch' },
         user: { login: 'carol' },
         author_association: 'CONTRIBUTOR'
       }
@@ -104,6 +108,7 @@ describe('context parser', () => {
     expect(ctx.event).toBe('pull_request')
     expect(ctx.body).toBe('PR body')
     expect(ctx.state).toBe('closed')
+    expect(ctx.ref).toBe('refs/heads/main')
     expect(ctx.issue_author).toBe('carol')
     expect(ctx.author_association).toBe('CONTRIBUTOR')
     expect(ctx.comment_author).toBe('')

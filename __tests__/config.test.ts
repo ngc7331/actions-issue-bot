@@ -455,4 +455,104 @@ describe('config.parseConfig', () => {
       'Unknown condition key "unknown" in nope.'
     )
   })
+
+  it('normalizes dispatch inputs during config parsing', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'issue-bot-'))
+    const filePath = path.join(tmpDir, 'config.yaml')
+
+    await writeFile(
+      filePath,
+      [
+        'rules:',
+        '  dispatch_rule:',
+        '    condition:',
+        "      - regex: 'run'",
+        '    action:',
+        '      dispatch:',
+        "        name: 'run.yml'",
+        '        inputs:',
+        '          as_string: keep',
+        '          as_number: 7',
+        '          as_boolean: true',
+        '          as_null: null'
+      ].join('\n')
+    )
+
+    const config = await parseConfig(filePath)
+
+    expect(config.rules.dispatch_rule.action.dispatch?.inputs).toEqual({
+      as_string: 'keep',
+      as_number: '7',
+      as_boolean: 'true'
+    })
+  })
+
+  it('throws on invalid dispatch input values during config parsing', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'issue-bot-'))
+    const filePath = path.join(tmpDir, 'config.yaml')
+
+    await writeFile(
+      filePath,
+      [
+        'rules:',
+        '  dispatch_rule:',
+        '    condition:',
+        "      - regex: 'run'",
+        '    action:',
+        '      dispatch:',
+        "        name: 'run.yml'",
+        '        inputs:',
+        '          bad:',
+        '            nested: value'
+      ].join('\n')
+    )
+
+    await expect(parseConfig(filePath)).rejects.toThrow(
+      'dispatch.inputs.bad for rule "dispatch_rule" must be a string, number, boolean, null, or undefined.'
+    )
+  })
+
+  it('throws when dispatch name is empty during config parsing', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'issue-bot-'))
+    const filePath = path.join(tmpDir, 'config.yaml')
+
+    await writeFile(
+      filePath,
+      [
+        'rules:',
+        '  dispatch_rule:',
+        '    condition:',
+        "      - regex: 'run'",
+        '    action:',
+        '      dispatch:',
+        "        name: '   '"
+      ].join('\n')
+    )
+
+    await expect(parseConfig(filePath)).rejects.toThrow(
+      'dispatch.name for rule "dispatch_rule" must be a non-empty string.'
+    )
+  })
+
+  it('normalizes dispatch ref during config parsing', async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), 'issue-bot-'))
+    const filePath = path.join(tmpDir, 'config.yaml')
+
+    await writeFile(
+      filePath,
+      [
+        'rules:',
+        '  dispatch_rule:',
+        '    condition:',
+        "      - regex: 'run'",
+        '    action:',
+        '      dispatch:',
+        "        name: 'run.yml'",
+        "        ref: '   main   '"
+      ].join('\n')
+    )
+
+    const config = await parseConfig(filePath)
+    expect(config.rules.dispatch_rule.action.dispatch?.ref).toBe('main')
+  })
 })

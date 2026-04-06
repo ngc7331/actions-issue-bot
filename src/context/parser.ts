@@ -15,6 +15,7 @@ export async function getContext(octokit: GitHubClient): Promise<Context> {
 
   const owner = context.repo.owner
   const repo = context.repo.repo
+  const ref = context.ref
 
   let issue_number: number | undefined
   let title: string | undefined
@@ -67,6 +68,7 @@ export async function getContext(octokit: GitHubClient): Promise<Context> {
     bot_id,
     owner,
     repo,
+    ref,
     event,
     issue_number,
     comment_id,

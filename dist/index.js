@@ -33362,6 +33362,7 @@ async function getContext(octokit) {
         .then((res) => res.data.id);
     const owner = context.repo.owner;
     const repo = context.repo.repo;
+    const ref = context.ref;
     let issue_number;
     let title;
     let body;
@@ -33408,6 +33409,7 @@ async function getContext(octokit) {
         bot_id,
         owner,
         repo,
+        ref,
         event,
         issue_number,
         comment_id,
@@ -33435,6 +33437,12 @@ function getIssueCommentApiContext(ctx) {
         repo: ctx.repo,
         comment_id: ctx.comment_id
     };
+}
+
+function applyTemplateVariables(template, ctx) {
+    return template
+        .replaceAll('{{ issue.author }}', ctx.issue_author ?? '')
+        .replaceAll('{{ comment.author }}', (ctx.comment_author || ctx.issue_author) ?? '');
 }
 
 const ALIAS = Symbol.for('yaml.alias');
@@ -40949,7 +40957,57 @@ function validateConfig(config) {
             throw new Error(`Action for rule "${ruleName}" must be an object.`);
         }
         validateConditionGroup(ruleName, rule.condition);
+        validateAction(ruleName, rule.action);
     }
+}
+function validateAction(ruleName, action) {
+    if (!action.dispatch) {
+        return;
+    }
+    validateDispatchAction(ruleName, action.dispatch);
+}
+function validateDispatchAction(ruleName, dispatch) {
+    if (!dispatch || typeof dispatch !== 'object') {
+        throw new Error(`dispatch action for rule "${ruleName}" must be an object.`);
+    }
+    if (typeof dispatch.name !== 'string') {
+        throw new Error(`dispatch.name for rule "${ruleName}" must be a string.`);
+    }
+    dispatch.name = dispatch.name.trim();
+    if (!dispatch.name) {
+        throw new Error(`dispatch.name for rule "${ruleName}" must be a non-empty string.`);
+    }
+    if (dispatch.ref !== undefined && typeof dispatch.ref !== 'string') {
+        throw new Error(`dispatch.ref for rule "${ruleName}" must be a string.`);
+    }
+    if (dispatch.ref !== undefined) {
+        dispatch.ref = dispatch.ref.trim() || undefined;
+    }
+    dispatch.inputs = normalizeWorkflowInputs(ruleName, dispatch.inputs);
+}
+function normalizeWorkflowInputs(ruleName, inputs) {
+    if (inputs === undefined) {
+        return undefined;
+    }
+    if (!inputs || typeof inputs !== 'object' || Array.isArray(inputs)) {
+        throw new Error(`dispatch.inputs for rule "${ruleName}" must be an object.`);
+    }
+    const normalized = {};
+    for (const [key, value] of Object.entries(inputs)) {
+        if (value === null || value === undefined) {
+            continue;
+        }
+        if (typeof value === 'string') {
+            normalized[key] = value;
+            continue;
+        }
+        if (typeof value === 'number' || typeof value === 'boolean') {
+            normalized[key] = String(value);
+            continue;
+        }
+        throw new Error(`dispatch.inputs.${key} for rule "${ruleName}" must be a string, number, boolean, null, or undefined.`);
+    }
+    return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 const validEventTypes = new Set(CONTEXT_EVENTS);
 const validStates = new Set(CONTEXT_STATES);
@@ -41136,15 +41194,10 @@ function evaluateCondition(condition, ctx) {
     return false;
 }
 
-function applyTemplate(template, issueAuthor, commentAuthor) {
-    return template
-        .replaceAll('{{ issue.author }}', issueAuthor ?? '')
-        .replaceAll('{{ comment.author }}', (commentAuthor || issueAuthor) ?? '');
-}
-async function run$5(octokit, ctx, config) {
+async function run$6(octokit, ctx, config) {
     const apiCtx = getIssueApiContext(ctx);
     const message = config.message;
-    const body = applyTemplate(message, ctx.issue_author, ctx.comment_author);
+    const body = applyTemplateVariables(message, ctx);
     debug(`[action:comment] comment ${previewString(body)}`);
     await octokit.rest.issues.createComment({
         ...apiCtx,
@@ -41152,7 +41205,7 @@ async function run$5(octokit, ctx, config) {
     });
 }
 
-async function run$4(octokit, ctx, action) {
+async function run$5(octokit, ctx, action) {
     if (!action)
         return;
     const addList = normalizeStringList(action.add);
@@ -41182,7 +41235,7 @@ async function run$4(octokit, ctx, action) {
     }
 }
 
-async function run$3(octokit, ctx, action) {
+async function run$4(octokit, ctx, action) {
     if (!action)
         return;
     const apiCtx = getIssueApiContext(ctx);
@@ -41218,7 +41271,7 @@ async function run$3(octokit, ctx, action) {
     }
 }
 
-async function run$2(octokit, ctx, config) {
+async function run$3(octokit, ctx, config) {
     if (!config)
         return;
     const apiCtx = getIssueApiContext(ctx);
@@ -41291,7 +41344,7 @@ async function removeReactions(octokit, ctx, content) {
         }
     }
 }
-async function run$1(octokit, ctx, config) {
+async function run$2(octokit, ctx, config) {
     if (!config)
         return;
     const addList = normalizeReactions(config.add);
@@ -41310,22 +41363,59 @@ async function run$1(octokit, ctx, config) {
     }
 }
 
+function renderWorkflowInputs(inputs, ctx) {
+    if (!inputs)
+        return undefined;
+    const rendered = {};
+    for (const [key, value] of Object.entries(inputs)) {
+        rendered[key] = applyTemplateVariables(value, ctx);
+    }
+    return Object.keys(rendered).length > 0 ? rendered : undefined;
+}
+async function run$1(octokit, ctx, config) {
+    if (!config)
+        return;
+    const workflow = applyTemplateVariables(config.name, ctx).trim();
+    if (!workflow) {
+        throw new Error('dispatch.name must be a non-empty string.');
+    }
+    const ref = config.ref
+        ? applyTemplateVariables(config.ref, ctx).trim() || undefined
+        : ctx.ref?.trim() || undefined;
+    if (!ref) {
+        throw new Error('dispatch.ref is required from config.ref or context.ref.');
+    }
+    const inputs = renderWorkflowInputs(config.inputs, ctx);
+    debug(`[action:dispatch] workflow=${workflow}${ref ? ` ref=${ref}` : ''}${inputs ? ` inputs=${Object.keys(inputs).join(',')}` : ''}`);
+    const dispatchRequest = {
+        owner: ctx.owner,
+        repo: ctx.repo,
+        workflow_id: workflow,
+        ref,
+        ...(inputs ? { inputs } : {})
+    };
+    await octokit.rest.actions.createWorkflowDispatch(dispatchRequest);
+}
+
 async function runActions(octokit, actions, ctx) {
     const tasks = [];
     if (actions.comment) {
-        tasks.push(run$5(octokit, ctx, actions.comment));
+        tasks.push(run$6(octokit, ctx, actions.comment));
     }
     if (actions.label) {
-        tasks.push(run$4(octokit, ctx, actions.label));
+        tasks.push(run$5(octokit, ctx, actions.label));
     }
     if (actions.assign) {
-        tasks.push(run$3(octokit, ctx, actions.assign));
+        tasks.push(run$4(octokit, ctx, actions.assign));
     }
     if (actions.state) {
-        tasks.push(run$2(octokit, ctx, actions.state));
+        tasks.push(run$3(octokit, ctx, actions.state));
     }
     if (actions.react) {
-        tasks.push(run$1(octokit, ctx, actions.react));
+        tasks.push(run$2(octokit, ctx, actions.react));
+    }
+    if (actions.dispatch) {
+        tasks.push(run$1(octokit, ctx, actions.dispatch));
     }
     await Promise.all(tasks);
 }

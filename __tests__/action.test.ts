@@ -2,6 +2,7 @@ import { createContext, createOctokitMock } from '../__fixtures__/github.js'
 import { runActions } from '../src/action/index.js'
 import { run as runAssign } from '../src/action/assign.js'
 import { run as runComment } from '../src/action/comment.js'
+import { run as runDispatch } from '../src/action/dispatch.js'
 import { run as runLabel } from '../src/action/label.js'
 import { run as runState } from '../src/action/state.js'
 import type { Action } from '../src/action/types.js'
@@ -149,6 +150,93 @@ describe('action runners', () => {
     expect(octokit.rest.issues.update).not.toHaveBeenCalled()
   })
 
+  it('dispatches workflow with name only using context ref', async () => {
+    const octokit = createOctokitMock()
+    const ctx = createContext({ comment: null })
+
+    await runDispatch(octokit, ctx, {
+      name: 'triage.yml'
+    })
+
+    expect(octokit.rest.actions.createWorkflowDispatch).toHaveBeenCalledWith({
+      owner: 'octo',
+      repo: 'hello',
+      workflow_id: 'triage.yml',
+      ref: 'refs/heads/main'
+    })
+  })
+
+  it('dispatches workflow with ref and inputs', async () => {
+    const octokit = createOctokitMock()
+    const ctx = createContext({ comment: null })
+
+    await runDispatch(octokit, ctx, {
+      name: 'triage.yml',
+      ref: 'refs/heads/main',
+      inputs: {
+        issue: '7',
+        is_member: 'true',
+        note: 'hello'
+      }
+    })
+
+    expect(octokit.rest.actions.createWorkflowDispatch).toHaveBeenCalledWith({
+      owner: 'octo',
+      repo: 'hello',
+      workflow_id: 'triage.yml',
+      ref: 'refs/heads/main',
+      inputs: {
+        issue: '7',
+        is_member: 'true',
+        note: 'hello'
+      }
+    })
+  })
+
+  it('renders dispatch templates in name, ref and inputs', async () => {
+    const octokit = createOctokitMock()
+    const ctx = createContext({
+      comment: {
+        author: 'triager'
+      }
+    })
+
+    await runDispatch(octokit, ctx, {
+      name: 'run-{{ issue.author }}.yml',
+      ref: 'refs/heads/{{ comment.author }}',
+      inputs: {
+        issue_author: '{{ issue.author }}',
+        comment_author: '{{ comment.author }}',
+        static_value: 'plain',
+        retry: '2'
+      }
+    })
+
+    expect(octokit.rest.actions.createWorkflowDispatch).toHaveBeenCalledWith({
+      owner: 'octo',
+      repo: 'hello',
+      workflow_id: 'run-octocat.yml',
+      ref: 'refs/heads/triager',
+      inputs: {
+        issue_author: 'octocat',
+        comment_author: 'triager',
+        static_value: 'plain',
+        retry: '2'
+      }
+    })
+  })
+
+  it('throws when dispatch name is empty', async () => {
+    const octokit = createOctokitMock()
+    const ctx = createContext({ comment: null })
+
+    await expect(
+      runDispatch(octokit, ctx, {
+        name: '   '
+      })
+    ).rejects.toThrow('dispatch.name must be a non-empty string.')
+  })
+
   it('runs all configured actions via runActions', async () => {
     const octokit = createOctokitMock()
     const ctx = createContext()
@@ -157,7 +245,13 @@ describe('action runners', () => {
       comment: { message: 'auto-reply' },
       label: { add: 'triage' },
       assign: { add: 'owner' },
-      state: { reason: 'reopened' }
+      state: { reason: 'reopened' },
+      dispatch: {
+        name: 'triage.yml',
+        inputs: {
+          rule: 'default'
+        }
+      }
     }
 
     await runActions(octokit, actions, ctx)
@@ -171,6 +265,15 @@ describe('action runners', () => {
       issue_number: 7,
       state: 'open',
       state_reason: 'reopened'
+    })
+    expect(octokit.rest.actions.createWorkflowDispatch).toHaveBeenCalledWith({
+      owner: 'octo',
+      repo: 'hello',
+      workflow_id: 'triage.yml',
+      ref: 'refs/heads/main',
+      inputs: {
+        rule: 'default'
+      }
     })
   })
 

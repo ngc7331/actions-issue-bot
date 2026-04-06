@@ -16,6 +16,7 @@ export interface Context {
   bot_id: number
   owner: string
   repo: string
+  ref?: string
   event: ContextEvent
   issue_number: number // despite the name, this can be a pull request number as well since GitHub treats PRs as issues
   comment_id?: number

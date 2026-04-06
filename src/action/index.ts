@@ -6,6 +6,7 @@ import { run as runLabel } from './label.js'
 import { run as runAssign } from './assign.js'
 import { run as runState } from './state.js'
 import { run as runReact } from './react.js'
+import { run as runDispatch } from './dispatch.js'
 
 export async function runActions(
   octokit: GitHubClient,
@@ -32,6 +33,10 @@ export async function runActions(
 
   if (actions.react) {
     tasks.push(runReact(octokit, ctx, actions.react))
+  }
+
+  if (actions.dispatch) {
+    tasks.push(runDispatch(octokit, ctx, actions.dispatch))
   }
 
   await Promise.all(tasks)

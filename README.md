@@ -11,7 +11,7 @@ and assignments based on YAML rules.
 - Regex-based matching across issue titles, bodies, and comments
 - Filtering based on comment authorship (e.g., repository members)
 - YAML-driven rules for conditions and actions
-- Supported actions: comment, state(close, reopen), label, and assign
+- Supported actions: comment, react, label, state, assign, and dispatch
 
 ## Basic Usage
 
@@ -80,8 +80,8 @@ condition (Refer to the [Condition Types](#condition-types) section below), and
 the `value` is the condition value.
 
 `action` block defines the actions to take when the conditions are met. It can
-include `comment`, `state`, `assign`, and `close` actions. Refer to the
-[Action Types](#action-types) section below for details.
+include `comment`, `react`, `label`, `state`, `assign`, and `dispatch` actions.
+Refer to the [Action Types](#action-types) section below for details.
 
 `global` is a list of conditions that apply to all rules. If specified, only
 issues/comments that satisfy all global conditions will be considered for rule
@@ -286,6 +286,30 @@ assign:
   add: 'member233'
   remove: 'member666'
   remove_all: false
+```
+
+#### action-`dispatch`
+
+Dispatches another workflow in the same repository.
+
+- `name`: workflow file name or workflow ID (required)
+- `ref`: git ref to run on (optional). If omitted, GitHub uses the default
+  branch.
+- `inputs`: key-value map passed to `workflow_dispatch` inputs (optional).
+  Values can be string, number, or boolean and will be converted to strings.
+  `null` and `undefined` are ignored.
+
+All fields support simple templating with `{{ }}`. Refer to the
+[Template Variables](#template-variables) section below for available variables.
+
+Example:
+
+```yaml
+dispatch:
+  name: 'run-test.yml'
+  ref: 'main'
+  inputs:
+    author: '{{ issue.author }}'
 ```
 
 ### Template Variables

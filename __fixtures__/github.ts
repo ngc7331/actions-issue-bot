@@ -3,6 +3,7 @@ import { jest } from '@jest/globals'
 import type { GitHubClient, Context } from '../src/context/index.js'
 
 type ContextOverrides = {
+  ref?: string
   event?: Context['event']
   issue?: Partial<
     Pick<
@@ -24,6 +25,11 @@ type ContextOverrides = {
 
 export function createOctokitMock(): GitHubClient {
   const rest = {
+    actions: {
+      createWorkflowDispatch: jest
+        .fn<() => Promise<void>>()
+        .mockResolvedValue(undefined)
+    },
     issues: {
       createComment: jest
         .fn<() => Promise<void>>()
@@ -84,8 +90,10 @@ export function createContext(overrides?: ContextOverrides): Context {
       : issue_author_association
 
   return {
+    bot_id: 12345,
     owner: 'octo',
     repo: 'hello',
+    ref: overrides?.ref ?? 'refs/heads/main',
     event,
     issue_number,
     title,

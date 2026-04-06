@@ -1,7 +1,7 @@
 {
   "name": "actions-issue-bot",
-  "description": "Automate replies, labels, assignments, and closing issues based on YAML rules.",
-  "version": "1.0.1",
+  "description": "Automate replies, labels, assigns, reacts, and closes issues, dispatches workflows based on YAML rules.",
+  "version": "1.1.0",
   "author": "ngc7331",
   "type": "module",
   "homepage": "https://github.com/ngc7331/actions-issue-bot",

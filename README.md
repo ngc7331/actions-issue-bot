@@ -3,8 +3,9 @@
 ![Coverage](./badges/coverage.svg)
 
 Automation for triaging GitHub issues and comments. The action watches issue
-titles, bodies, and comments, then reacts with canned replies, labels, closing,
-and assignments based on YAML rules.
+titles, bodies, and comments, then performs actions like commenting, labeling,
+assigning, reacting, closing, and dispatching other workflows based on
+customizable YAML rules.
 
 ## Features
 

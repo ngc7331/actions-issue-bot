@@ -44,7 +44,7 @@ rules:
       comment:
         message: 'Hello @{{ comment.author }}!'
       dispatch:
-        workflow: ci-test-dispatch.yml
+        name: ci-test-dispatch.yml
         inputs:
           author: '{{ comment.author }}'
 

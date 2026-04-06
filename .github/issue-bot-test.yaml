@@ -36,6 +36,18 @@ rules:
       state:
         reason: reopened
 
+  hello:
+    condition:
+      - regex: "^\/hello"
+      - event_type: issue_comment
+    action:
+      comment:
+        message: 'Hello @{{ comment.author }}!'
+      dispatch:
+        workflow: ci-test-dispatch.yml
+        inputs:
+          author: '{{ comment.author }}'
+
 global:
   - regex_title: '[TEST]'
   - member: only

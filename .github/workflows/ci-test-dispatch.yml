@@ -1,0 +1,19 @@
+name: Issue Bot CI Test for Dispatch Action
+
+#checkov:skip=CKV_GHA_7: Intentional test workflow to validate workflow_dispatch input forwarding for dispatch action.
+on:
+  workflow_dispatch:
+    inputs:
+      author:
+        description: 'Author of the issue or comment'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hello
+        run: echo "Hello, ${{ github.event.inputs.author }}!"

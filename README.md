@@ -292,8 +292,8 @@ assign:
 
 Dispatches another workflow in the same repository.
 
-- `name`: workflow file name or workflow ID (required)
-- `ref`: git ref to run on (optional). If omitted, GitHub uses the default
+- `name`: workflow filename or workflow ID (required)
+- `ref`: Git ref to run on (optional). If omitted, GitHub uses the default
   branch.
 - `inputs`: key-value map passed to `workflow_dispatch` inputs (optional).
   Values can be string, number, or boolean and will be converted to strings.

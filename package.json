@@ -40,9 +40,9 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^3.0.0",
+    "@actions/core": "^3.0.1",
     "@actions/github": "^9.0.0",
-    "yaml": "^2.8.3"
+    "yaml": "^2.8.4"
   },
   "overrides": {
     "undici": "^6.24.0"
